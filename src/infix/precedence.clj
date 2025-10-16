@@ -3,8 +3,11 @@
 
 (def ^:private precedence-map
   "Operator precedence table. Higher numbers = higher precedence."
-  {;; Pipeline operator (very low precedence, lower than boolean)
-   '|> 0.05
+  {;; Threading operators (very low precedence, lower than boolean)
+   '-> 0.05
+   '->> 0.05  
+   'some-> 0.05
+   'some->> 0.05
    ;; Boolean operators (lowest precedence)
    'or 0.1
    'and 0.2
@@ -24,8 +27,11 @@
 
 (def ^:private associativity-map
   "Operator associativity. true = left-associative, false = right-associative."
-  {;; Pipeline operator (left-associative for chaining)
-   '|> true
+  {;; Threading operators (left-associative for chaining)
+   '-> true
+   '->> true
+   'some-> true
+   'some->> true
    ;; Boolean operators
    'or true
    'and true

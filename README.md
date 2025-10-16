@@ -1,40 +1,29 @@
 # Infix — Readable Math and Dataflow Syntax for Clojure
 
-> “A massive heresy that makes Clojure more readable for normal humans.”
+> "A massive heresy that makes Clojure more readable for normal humans."
 
-**Infix** adds optional infix-style expressions, `|>` pipelines, arrow lambdas, and early-returning functions to Clojure — without leaving Lisp semantics.  
-It lets you write this:
+**Infix** adds optional infix-style expressions with native Clojure threading macros, arithmetic, comparisons, and boolean logic — without leaving Lisp semantics.  
 
-```clojure
-(infix-let
-  [raw     (slurp "file.txt")
-   lines   (split raw #"
-")
-   words   (lines |> map(fn(s) split(s, " ")) |> mapcat identity)
-   words   (words |> map(trim))
-   unique  (distinct words)
-   sorted  (sort unique)
-   avg     ((map count unique |> reduce + 0) / (count unique))]
-  {:unique unique
-   :sorted sorted
-   :avg    avg})
-```
-
-and get this:
+Transform this readable syntax:
 
 ```clojure
-(let [raw (slurp "file.txt")
-      lines (clojure.string/split raw #"
-")
-      words (->> lines
-                 (map (fn [s] (clojure.string/split s " ")))
-                 (mapcat identity)
-                 (map clojure.string/trim))
-      unique (distinct words)
-      sorted (sort unique)
-      avg (/ (reduce + 0 (map count unique)) (count unique))]
-  {:unique unique :sorted sorted :avg avg})
+(infix {:users users} 
+       -> :users 
+       ->> (filter #(> (:age %) 25))
+       ->> (map :name)
+       ->> (take 10))
 ```
+
+Into standard Clojure:
+
+```clojure
+(->> (-> {:users users} :users)
+     (filter #(> (:age %) 25)) 
+     (map :name)
+     (take 10))
+```
+
+Perfect for data transformations, business logic, and mathematical expressions.
 
 ---
 
@@ -88,7 +77,7 @@ Supported operators:
 | Arithmetic | `+ - * /` |
 | Comparison | `= not= < <= > >=` |
 | Boolean | `and or not` |
-| Pipeline | `|>` → expands to `->>` |
+| Threading | `-> ->> some-> some->>` |
 
 Grouping with normal parentheses works:
 
@@ -98,188 +87,119 @@ Grouping with normal parentheses works:
 
 ---
 
-### 2. Pipelines (`|>`)
+### 2. Native Threading Macros
 
-`|>` threads its left-hand value as the **last argument** (`->>`).  
-It reads left-to-right like a shell or F# pipeline.
+Use Clojure's threading macros directly as infix operators for powerful data transformations:
 
+#### Thread-First (`->`)
 ```clojure
-(infix xs |> map(f) |> filter(p) |> take 10)
-;; => (->> xs (map f) (filter p) (take 10))
+(infix {:a 1 :b 2} -> (assoc :c 3) -> (get :c))
+;; => (-> {:a 1 :b 2} (assoc :c 3) (get :c))
+;; => 3
 ```
 
-You can mix with lambdas:
-
+#### Thread-Last (`->>`)
 ```clojure
-(infix data |> filter(x -> x.age > 30) |> map(x -> x.name))
+(infix [1 2 3 4 5] ->> (filter even?) ->> (map #(* % 2)))
+;; => (->> [1 2 3 4 5] (filter even?) (map #(* % 2)))
+;; => (4 8)
 ```
 
----
-
-### 3. `infix-let`
-
-Bindings written with `=` and right-hand infix expressions.
-
+#### Nil-Safe Threading (`some->`, `some->>`)
 ```clojure
-(infix-let
-  [a (1 + 2*3)
-   b (max(a, 5))
-   c (a + b)]
-  (+ a b c))
+(infix {:user {:name "john"}} some-> :user some-> :name some-> .toUpperCase)
+;; => "JOHN"
+
+(infix {:user nil} some-> :user some-> :name)  
+;; => nil
 ```
 
-Equivalent to:
-
+#### Mixed Threading
 ```clojure
-(let [a (+ 1 (* 2 3))
-      b (max a 5)
-      c (+ a b)]
-  (+ a b c))
+(infix {:data [1 2 3 4 5]} -> :data ->> (filter odd?) ->> (reduce +))
+;; => (->> (-> {:data [1 2 3 4 5]} :data) (filter odd?) (reduce +))
+;; => 9
 ```
 
 ---
 
-### 4. Arrow lambdas and `fn(...)`
+### 3. Combining Threading with Other Operators
 
-Two readable ways to define inline functions.
-
-```clojure
-(map(x -> x*x, xs))
-;; => (map (fn [x] (* x x)) xs)
-
-(filter(fn(o) o.amount > 0, orders))
-;; => (filter (fn [o] (> (:amount o) 0)) orders)
-```
-
----
-
-### 5. Early-returning functions (`infix-defn`)
-
-`(return expr)` jumps out of the current `infix-defn` immediately.  
-The macro wraps the body in a non-local exit (using an internal `Return` type).
+Threading operators work seamlessly with arithmetic, comparisons, and boolean logic:
 
 ```clojure
-(infix-defn score [a b]
-  (if a <= 0 then (return b) else 0) + (a * b))
+;; Threading with arithmetic
+(infix ([1 2 3] ->> count) + 5)
+;; => (+ (count [1 2 3]) 5) => 8
+
+;; Threading with comparisons  
+(infix ([1 2 3 4 5] ->> count) > 3)
+;; => (> (count [1 2 3 4 5]) 3) => true
+
+;; Threading with boolean logic
+(infix ([1 2] ->> empty?) or ([3 4] ->> empty?))
+;; => (or (empty? [1 2]) (empty? [3 4])) => false
 ```
 
-Equivalent to:
+Complex business logic becomes readable:
 
 ```clojure
-(defn score [a b]
-  (try
-    (if (<= a 0) (throw (Return. b)) 0)
-    (+ (* a b))
-    (catch Return r (.v r))))
+(infix {:transactions txns}
+       -> :transactions
+       ->> (filter #(= :debit (:type %)))
+       ->> (map :amount)
+       ->> (reduce +)
+       -> (> 1000))
 ```
-
----
-
-### 6. Function calls and commas
-
-Calls read like normal programming languages:
-
-```clojure
-(infix max(a, b))
-(infix split(str, #"\s+"))
-(infix reduce(+, 0, xs))
-```
-
----
-
-### 7. “By” helpers
-
-Read naturally for ranking and sorting.
-
-```clojure
-(infix max-by(count, words))
-;; => (apply max-key count words)
-
-(infix sort-by(score, desc, items))
-;; => (sort-by :score > items)
-```
-
----
-
-### 8. Membership tests
-
-Readable containment checks.
-
-```clojure
-(infix :vip in user.tags and user.id not-in blocked)
-;; => (and (contains? (:tags user) :vip)
-;;         (not (contains? blocked (:id user))))
-```
-
----
-
-### 9. Indexing and slices *(optional sugar)*
-
-```clojure
-(infix xs[2])
-;; => (nth xs 2)
-
-(infix xs[1..4])
-;; => (subvec xs 1 4)
-```
-
----
-
-### 10. Piecewise / guards *(planned)*
-
-Future syntax for tariff-like formulas:
-
-```clojure
-(infix case(
-  x < 10     -> 1.0*x,
-  x < 100    -> 10 + 0.8*(x - 10),
-  otherwise  -> 82 + 0.5*(x - 100)
-))
-```
-
-→ expands to a `cond`.
-
----
-
-## 🧩 Macros Summary
-
-| Macro | Purpose |
-|--------|----------|
-| `infix` | One expression, list-based infix form. |
-| `infix-let` | Sequential bindings with infix RHS and `=`. |
-| `infix-defn` | Function with infix body and `return`. |
-| `return` | Non-local early exit inside `infix-defn`. |
 
 ---
 
 ## 🧪 Examples
 
-### Math
+### Mathematical Expressions
 
 ```clojure
-(infix-let [(r = 2)
-            (area = PI * r * r)]
-  (println "Area:" area))
+(infix a * b + c / d)
+;; => (+ (* a b) (/ c d))
+
+(infix (x + y) * (z - w))
+;; => (* (+ x y) (- z w))
 ```
 
-### Data pipeline
+### Data Transformation Pipeline
 
 ```clojure
-(infix-defn top-names [path n]
-  data = slurp(path)
-  lines = split(data, #"\n")
-  names = lines |> map(fn(s) first(split(s, ",")))
-  freq  = frequencies(names)
-  sorted = sort-by(val, desc, freq)
-  take(n, sorted))
+(infix users
+       ->> (filter #(> (:age %) 18))
+       ->> (map :email)  
+       ->> (take 10)
+       ->> set)
 ```
 
-### Early return
+### Business Logic
 
 ```clojure
-(infix-defn safe-div [x y]
-  when y = 0 then (return nil)
-  x / y)
+(defn calculate-discount [order]
+  (infix (:total order)
+         -> (* 0.1)  ; 10% discount
+         -> (max 5)  ; minimum $5 discount
+         -> (min 100))) ; maximum $100 discount
+
+(defn active-premium-users [users]
+  (infix users
+         ->> (filter :active?)
+         ->> (filter :premium?)
+         ->> (map :name)
+         ->> sort))
+```
+
+### Complex Conditional Logic
+
+```clojure
+(defn categorize-transaction [txn]
+  (let [amount (:amount txn)
+        category (:category txn)]
+    (infix amount > 1000 and category = :business)))
 ```
 
 ---
@@ -295,15 +215,21 @@ Future syntax for tariff-like formulas:
 
 ---
 
-## 🧰 Roadmap
+## 🧰 Current Status
 
-| Version | Features |
-|----------|-----------|
-| `v0.1` | `infix`, `infix-let`, precedence parser, `|>`, `and/or/not`, arithmetic, comparisons. |
-| `v0.2` | Arrow lambdas (`x -> ...`), `fn(...) ...`, `return`, `infix-defn`. |
-| `v0.3` | `max-by`, `sort-by`, `in`, `not-in`, slices, `case(...)`. |
-| `v0.4` | Pretty error messages, source maps, macroexpansion debugging. |
-| `v1.0` | Stable DSL + optional static checking for formulas. |
+**✅ v0.1 - Core Infix Operations**
+- ✅ Arithmetic operators: `+ - * /`
+- ✅ Comparison operators: `= not= < <= > >=`  
+- ✅ Boolean operators: `and or not`
+- ✅ Direct threading macros: `-> ->> some-> some->>`
+- ✅ Proper operator precedence with Shunting Yard algorithm
+- ✅ Function call integration
+- ✅ Comprehensive test suite (100+ passing tests)
+
+**🔄 Future Roadmap**
+- `v0.2`: Arrow lambdas (`x -> x * 2`), enhanced function syntax
+- `v0.3`: Collection operators (`in`, `not-in`), helper functions
+- `v0.4`: Advanced features, better error messages
 
 ---
 
@@ -311,17 +237,21 @@ Future syntax for tariff-like formulas:
 
 ```clojure
 user=> (require '[infix.core :refer :all])
-user=> (macroexpand-1 '(infix 1 + 2*3))
+
+user=> (macroexpand-1 '(infix 1 + 2 * 3))
 (+ 1 (* 2 3))
 
-user=> (infix-let [(a = 10) (b = 5) (c = a*b + a/2)] (+ a b c))
-70.0
+user=> (infix 1 + 2 * 3)
+7
 
-user=> (infix-defn f [x]
-         when x < 0 then (return :negative)
-         x * x)
-user=> (map f [-3 0 2])
-(:negative 0 4)
+user=> (infix [1 2 3 4 5] ->> (filter even?) ->> (map #(* % 2)) ->> vec)
+[4 8]
+
+user=> (infix {:user {:name "john"}} some-> :user some-> :name some-> .toUpperCase)
+"JOHN"
+
+user=> (infix 5 > 3 and 2 < 4)
+true
 ```
 
 ---

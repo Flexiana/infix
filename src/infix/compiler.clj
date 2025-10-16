@@ -4,26 +4,44 @@
 (defn- operator?
   "Check if token is an operator."
   [token]
-  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '|>} token))
+  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '-> '->> 'some-> 'some->>} token))
 
 (defn- unary-operator?
   "Check if token is a unary operator."
   [token]
   (contains? #{'not} token))
 
-(defn- pipeline-operator?
-  "Check if token is a pipeline operator."
+(defn- threading-operator?
+  "Check if token is a threading operator."
   [token]
-  (= token '|>))
+  (contains? #{'-> '->> 'some-> 'some->>} token))
 
-(defn- compile-pipeline
-  "Convert pipeline operation to threading macro."
-  [data operation]
-  (if (seq? operation)
-    ;; If operation is a function call, thread data as last argument (like ->>)
-    (concat operation [data])
-    ;; If operation is a simple function, create function call with data
-    (list operation data)))
+(defn- compile-threading
+  "Convert threading operation to direct threading macro usage."
+  [data operation threading-op]
+  (let [threaded-form (cond
+                        ;; Thread-first operators (-> some->)
+                        (contains? #{'-> 'some->} threading-op)
+                        (if (seq? operation)
+                          ;; Function call: thread data as first argument
+                          (list* (first operation) data (rest operation))
+                          ;; Simple function: create function call
+                          (list operation data))
+                        
+                        ;; Thread-last operators (->> some->>)  
+                        (contains? #{'->> 'some->>} threading-op)
+                        (if (seq? operation)
+                          ;; Function call: thread data as last argument
+                          (concat operation [data])
+                          ;; Simple function: create function call
+                          (list operation data))
+                        
+                        :else
+                        (throw (ex-info "Unknown threading operator" {:operator threading-op})))]
+    ;; Wrap with some-> or some->> if nil-safe
+    (if (contains? #{'some-> 'some->>} threading-op)
+      (list threading-op data operation)
+      threaded-form)))
 
 (defn compile-postfix
   "Convert postfix notation to Clojure expression."
@@ -39,11 +57,11 @@
             (let [a (peek @stack)]
               (swap! stack #(-> % pop (conj (list token a)))))
             
-            ;; Pipeline operator - special handling
-            (pipeline-operator? token)
+            ;; Threading operators - direct compilation
+            (threading-operator? token)
             (let [b (peek @stack)
                   a (peek (pop @stack))]
-              (swap! stack #(-> % pop pop (conj (compile-pipeline a b)))))
+              (swap! stack #(-> % pop pop (conj (compile-threading a b token)))))
             
             ;; Binary operator - needs two operands  
             :else
