@@ -154,6 +154,51 @@ Complex business logic becomes readable:
 
 ---
 
+### 4. Arrow Lambdas
+
+Use `=>` syntax for clean, readable anonymous functions:
+
+#### Single Parameter
+```clojure
+(map (infix x => x * x) [1 2 3])
+;; => [1 4 9]
+
+(filter (infix x => x > 5) [1 5 10 15])
+;; => (10 15)
+```
+
+#### Multi-Parameter
+```clojure
+(reduce (infix (acc x) => acc + x) 0 [1 2 3 4])
+;; => 10
+
+((infix (x y) => (x + y) * 2) 3 4)
+;; => 14
+```
+
+#### Complex Expressions
+```clojure
+(map (infix x => x * x + 2 * x + 1) [1 2 3])
+;; => [4 9 16]  ; (x+1)²
+
+;; Mixed with threading
+(map (infix x => x -> str -> clojure.string/upper-case) [1 2 3])
+;; => ["1" "2" "3"]
+```
+
+#### Perfect Disambiguation
+Arrow lambdas (`=>`) are completely separate from threading (`->`):
+
+```clojure
+;; Arrow lambda
+(map (infix x => x * 2) [1 2 3])  ; => [2 4 6]
+
+;; Threading (unchanged)
+(infix data -> :key ->> (map inc))  ; Threading pipeline
+```
+
+---
+
 ## 🧪 Examples
 
 ### Mathematical Expressions
@@ -226,8 +271,14 @@ Complex business logic becomes readable:
 - ✅ Function call integration
 - ✅ Comprehensive test suite (100+ passing tests)
 
+**✅ v0.2 - Arrow Lambdas**
+- ✅ Arrow lambda syntax: `x => x * 2`
+- ✅ Multi-parameter lambdas: `(x y) => x + y`
+- ✅ Complex expressions: `x => x * x + 1`
+- ✅ Smart disambiguation from threading operators
+
 **🔄 Future Roadmap**
-- `v0.2`: Arrow lambdas (`x -> x * 2`), enhanced function syntax
+- `v0.3`: Enhanced function syntax, comma-separated parameters
 - `v0.3`: Collection operators (`in`, `not-in`), helper functions
 - `v0.4`: Advanced features, better error messages
 
@@ -252,6 +303,12 @@ user=> (infix {:user {:name "john"}} some-> :user some-> :name some-> .toUpperCa
 
 user=> (infix 5 > 3 and 2 < 4)
 true
+
+user=> (map (infix x => x * x) [1 2 3 4])
+(1 4 9 16)
+
+user=> ((infix (x y) => x + y * 2) 3 4)
+11
 ```
 
 ---
