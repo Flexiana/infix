@@ -3,14 +3,38 @@
 
 (def ^:private precedence-map
   "Operator precedence table. Higher numbers = higher precedence."
-  {'+ 1
+  {;; Boolean operators (lowest precedence)
+   'or 0.1
+   'and 0.2
+   'not 0.8  ; not has higher precedence, almost like unary
+   ;; Comparison operators 
+   '< 0.5
+   '<= 0.5
+   '> 0.5
+   '>= 0.5
+   '= 0.5
+   'not= 0.5
+   ;; Arithmetic operators (higher precedence)
+   '+ 1
    '- 1
    '* 2
    '/ 2})
 
 (def ^:private associativity-map
   "Operator associativity. true = left-associative, false = right-associative."
-  {'+ true
+  {;; Boolean operators
+   'or true
+   'and true
+   'not false  ; not is right-associative (prefix-like)
+   ;; Comparison operators
+   '< true
+   '<= true
+   '> true
+   '>= true
+   '= true
+   'not= true
+   ;; Arithmetic operators  
+   '+ true
    '- true
    '* true
    '/ true})

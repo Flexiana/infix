@@ -10,7 +10,7 @@
 (defn- operator?
   "Check if token is an operator."
   [token]
-  (contains? #{'+ '- '* '/} token))
+  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not} token))
 
 (defn- flatten-tokens
   "Flatten nested expressions while marking parentheses groups."

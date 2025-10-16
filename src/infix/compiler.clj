@@ -4,7 +4,7 @@
 (defn- operator?
   "Check if token is an operator."
   [token]
-  (contains? #{'+ '- '* '/} token))
+  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not} token))
 
 (defn compile-postfix
   "Convert postfix notation to Clojure expression."
