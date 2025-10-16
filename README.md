@@ -254,6 +254,35 @@ Define functions with infix expressions in their bodies:
 (quadratic 1 2 3 1)  ; => 6  (1*1*1 + 2*1 + 3)
 ```
 
+#### Early Returns with `return`
+
+Use the `return` statement for early exits from functions:
+
+```clojure
+(infix-defn safe-divide [x y]
+  (when (= y 0) (return nil))
+  (/ x y))
+
+(safe-divide 10 0)   ; => nil
+(safe-divide 10 2)   ; => 5
+
+;; Guard clauses pattern
+(infix-defn validate-age [age]
+  (when (< age 0) (return "Invalid: negative age"))
+  (when (> age 150) (return "Invalid: too old")) 
+  (when (< age 18) (return "Minor"))
+  "Adult")
+
+;; Multiple return points
+(infix-defn categorize-number [n]
+  (when (< n 0) (return "negative"))
+  (when (= n 0) (return "zero"))
+  (when (<= n 10) (return "small positive"))
+  "large positive")
+```
+
+**Note:** Early returns work by throwing and catching special exceptions internally, providing clean non-local exit semantics without affecting normal exception handling.
+
 ---
 
 ## 🧪 Examples
@@ -338,11 +367,12 @@ Define functions with infix expressions in their bodies:
 - ✅ `infix-defn` macro for function definitions with infix bodies
 - ✅ Support for docstrings: `(infix-defn name "doc" [params] body)`
 - ✅ Complex expressions with threading, comparisons, and arithmetic
+- ✅ Early return mechanism with `return` statement
+- ✅ Multiple return points and guard clause patterns
 - ✅ Full integration with all existing infix features
 
 **🔄 Future Roadmap**
 - `v0.4`: Function call syntax (`fn(args)`), comma-separated parameters
-- `v0.4`: Early return mechanism with `return` statement
 - `v0.5`: Collection operators (`in`, `not-in`), helper functions
 - `v0.6`: Advanced features, better error messages
 
@@ -385,6 +415,15 @@ user=> (infix-defn process-data [items] items ->> (filter :active?) ->> count)
 
 user=> (process-data [{:active? true} {:active? false} {:active? true}])
 2
+
+user=> (infix-defn safe-divide [x y] (when (= y 0) (return nil)) (/ x y))
+#'user/safe-divide
+
+user=> (safe-divide 10 0)
+nil
+
+user=> (safe-divide 10 2)
+5
 ```
 
 ---

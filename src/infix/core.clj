@@ -156,11 +156,49 @@
                                   [(first args) (second args) (drop 2 args)]
                                   ;; Without docstring: (infix-defn name [params] body)
                                   [nil (first args) (rest args)])
-        ;; Process the body using the same logic as infix macro
-        processed-body (-> body
-                           (as-> processed (map process-nested-infix processed))
-                           parser/parse-infix
-                           compiler/compile-postfix)]
-    (if docstring
-      `(defn ~fn-name ~docstring ~params ~processed-body)
-      `(defn ~fn-name ~params ~processed-body))))
+        ;; Process the body - support multiple expressions
+        processed-body (if (= 1 (count body))
+                         ;; Single expression body - process as infix expression
+                         (-> body
+                             (as-> processed (map process-nested-infix processed))
+                             parser/parse-infix
+                             compiler/compile-postfix)
+                         ;; Multiple expressions - treat as do block with each processed individually
+                         `(do ~@(map (fn [expr]
+                                       (if (and (sequential? expr)
+                                                ;; Only process if it contains infix operators or is an infix expression
+                                                (or (some operator? expr)
+                                                    (is-infix-expression? expr)))
+                                         (-> expr
+                                             (as-> processed (map process-nested-infix processed))
+                                             parser/parse-infix
+                                             compiler/compile-postfix)
+                                         ;; Otherwise just recursively process nested expressions  
+                                         (process-nested-infix expr)))
+                                     body)))]
+    ;; Wrap the processed body in try-catch to handle early returns
+    (let [wrapped-body `(try ~processed-body
+                             (catch Exception e#
+                               (if (and (= "return" (.getMessage e#))
+                                        (:return-value (ex-data e#)))
+                                 (:return-value (ex-data e#))
+                                 (throw e#))))]
+      (if docstring
+        `(defn ~fn-name ~docstring ~params ~wrapped-body)
+        `(defn ~fn-name ~params ~wrapped-body)))))
+
+;; Early return mechanism using exceptions
+(defrecord ReturnValue [value])
+
+(defn throw-return [value]
+  (throw (ex-info "return" {:return-value value})))
+
+(defmacro return
+  "Early return from infix-defn functions.
+  
+  Example:
+    (infix-defn safe-div [x y]
+      (when y = 0 (return nil))
+      x / y)"
+  [value]
+  `(infix.core/throw-return ~value))
