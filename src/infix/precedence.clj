@@ -3,7 +3,9 @@
 
 (def ^:private precedence-map
   "Operator precedence table. Higher numbers = higher precedence."
-  {;; Boolean operators (lowest precedence)
+  {;; Pipeline operator (very low precedence, lower than boolean)
+   '|> 0.05
+   ;; Boolean operators (lowest precedence)
    'or 0.1
    'and 0.2
    'not 0.8  ; not has higher precedence, almost like unary
@@ -22,7 +24,9 @@
 
 (def ^:private associativity-map
   "Operator associativity. true = left-associative, false = right-associative."
-  {;; Boolean operators
+  {;; Pipeline operator (left-associative for chaining)
+   '|> true
+   ;; Boolean operators
    'or true
    'and true
    'not false  ; not is right-associative (prefix-like)

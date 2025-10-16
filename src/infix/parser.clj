@@ -10,7 +10,7 @@
 (defn- operator?
   "Check if token is an operator."
   [token]
-  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not} token))
+  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '|>} token))
 
 (defn- contains-infix-pattern?
   "Check if a sequence contains infix operator patterns (operator between two operands)."
