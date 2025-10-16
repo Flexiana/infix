@@ -90,6 +90,7 @@
     (compile-arrow-lambda (first expr) (drop 2 expr))
     ;; Handle regular infix expression
     (-> expr
+        parser/transform-function-calls
         (as-> processed (map process-nested-infix processed))
         parser/parse-infix
         compiler/compile-postfix)))
@@ -160,6 +161,7 @@
         processed-body (if (= 1 (count body))
                          ;; Single expression body - process as infix expression
                          (-> body
+                             parser/transform-function-calls
                              (as-> processed (map process-nested-infix processed))
                              parser/parse-infix
                              compiler/compile-postfix)
@@ -170,6 +172,7 @@
                                                 (or (some operator? expr)
                                                     (is-infix-expression? expr)))
                                          (-> expr
+                                             parser/transform-function-calls
                                              (as-> processed (map process-nested-infix processed))
                                              parser/parse-infix
                                              compiler/compile-postfix)

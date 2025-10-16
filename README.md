@@ -285,6 +285,51 @@ Use the `return` statement for early exits from functions:
 
 ---
 
+### 6. Function Call Syntax
+
+Use familiar `fn(args)` syntax within infix expressions:
+
+#### Basic Function Calls
+```clojure
+(infix max(3, 5))           ; => 5
+(infix min(1, 2))           ; => 1
+(infix count("hello"))      ; => 5
+(infix Math/sqrt(9))        ; => 3.0
+```
+
+#### Function Calls with Infix Operators
+```clojure
+(infix max(3, 5) + min(1, 2))        ; => 6  (5 + 1)
+(infix Math/sqrt(9) * 2)             ; => 6.0
+(infix count("hello") > 3)           ; => true
+```
+
+#### Method Calls
+```clojure
+(infix .toUpperCase("hello"))        ; => "HELLO"
+(infix .length("hello"))             ; => 5
+(infix .substring("hello", 0, 2))    ; => "he"
+```
+
+#### Function Calls with Threading
+```clojure
+(infix "hello" -> .toUpperCase() -> .length())  ; => 5
+(infix [1 2 3] ->> (map(#(* % 2))) ->> vec())   ; => [2 4 6]
+```
+
+#### In Function Definitions
+```clojure
+(infix-defn distance [x1 y1 x2 y2]
+  (infix Math/sqrt(Math/pow(x2 - x1, 2) + Math/pow(y2 - y1, 2))))
+
+(infix-defn string-processor [s]
+  (infix .toUpperCase(.trim(s))))
+```
+
+**Note:** Function call syntax transforms `fn(args)` to standard Clojure `(fn args)` during parsing, maintaining full compatibility while providing familiar syntax.
+
+---
+
 ## 🧪 Examples
 
 ### Mathematical Expressions
@@ -371,10 +416,17 @@ Use the `return` statement for early exits from functions:
 - ✅ Multiple return points and guard clause patterns
 - ✅ Full integration with all existing infix features
 
+**✅ v0.4 - Function Call Syntax**
+- ✅ Function call syntax: `fn(args)` transforms to `(fn args)`
+- ✅ Method calls: `.method("arg")` and `.method(obj, arg)`
+- ✅ Integration with infix operators: `max(3, 5) + min(1, 2)`
+- ✅ Threading support: `obj -> .method() -> .otherMethod()`
+- ✅ Full compatibility with existing infix features
+
 **🔄 Future Roadmap**
-- `v0.4`: Function call syntax (`fn(args)`), comma-separated parameters
 - `v0.5`: Collection operators (`in`, `not-in`), helper functions
-- `v0.6`: Advanced features, better error messages
+- `v0.6`: Enhanced comma handling, nested function calls
+- `v0.7`: Advanced features, better error messages
 
 ---
 
@@ -424,6 +476,15 @@ nil
 
 user=> (safe-divide 10 2)
 5
+
+user=> (infix max(3, 5) + min(1, 2))
+6
+
+user=> (infix count("hello") > 3)
+true
+
+user=> (infix .toUpperCase("hello"))
+"HELLO"
 ```
 
 ---
