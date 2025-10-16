@@ -1,5 +1,6 @@
 (ns infix.compiler
-  "Compile postfix notation to Clojure forms.")
+  "Compile postfix notation to Clojure forms."
+  (:require [infix.parser :as parser]))
 
 (defn- operator?
   "Check if token is an operator."
@@ -43,6 +44,18 @@
       (list threading-op data operation)
       threaded-form)))
 
+(defn- process-nested-expressions
+  "Recursively process nested expressions for infix compilation."
+  [form]
+  (cond
+    ;; If it's a list (function call), recursively process arguments
+    (seq? form)
+    (map process-nested-expressions form)
+    
+    ;; Otherwise return as-is
+    :else
+    form))
+
 (defn compile-postfix
   "Convert postfix notation to Clojure expression."
   [postfix-tokens]
@@ -55,22 +68,22 @@
             ;; Unary operator - only needs one operand
             (unary-operator? token)
             (let [a (peek @stack)]
-              (swap! stack #(-> % pop (conj (list token a)))))
+              (swap! stack #(-> % pop (conj (list token (process-nested-expressions a))))))
             
             ;; Threading operators - direct compilation
             (threading-operator? token)
             (let [b (peek @stack)
                   a (peek (pop @stack))]
-              (swap! stack #(-> % pop pop (conj (compile-threading a b token)))))
+              (swap! stack #(-> % pop pop (conj (compile-threading (process-nested-expressions a) (process-nested-expressions b) token)))))
             
             ;; Binary operator - needs two operands  
             :else
             (let [b (peek @stack)
                   a (peek (pop @stack))]
-              (swap! stack #(-> % pop pop (conj (list token a b))))))
+              (swap! stack #(-> % pop pop (conj (list token (process-nested-expressions a) (process-nested-expressions b)))))))
           (swap! stack conj (if (vector? token)
                              (compile-postfix token)  ; Recursively compile nested vectors
-                             token))))
+                             (process-nested-expressions token)))))
       (let [result @stack]
         (if (= 1 (count result))
           (first result)

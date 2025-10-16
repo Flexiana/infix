@@ -2,10 +2,17 @@
   "Infix expression parser using Shunting Yard algorithm."
   (:require [infix.precedence :as prec]))
 
+(defn- transform-function-calls
+  "Transform function call syntax fn(args) into (fn args)."
+  [expr]
+  (if (sequential? expr)
+    (map transform-function-calls expr)
+    expr))
+
 (defn tokenize
   "Convert infix expression into sequence of tokens."
   [expr]
-  (vec expr))
+  (vec (transform-function-calls expr)))
 
 (defn- operator?
   "Check if token is an operator."
