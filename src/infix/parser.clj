@@ -12,16 +12,60 @@
   [token]
   (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not} token))
 
+(defn- contains-infix-pattern?
+  "Check if a sequence contains infix operator patterns (operator between two operands)."
+  [tokens]
+  (let [token-vec (vec tokens)]
+    (loop [i 1]  ; Start from index 1 since we need to check operand-operator-operand pattern
+      (if (>= i (dec (count token-vec)))
+        false
+        (if (and (operator? (nth token-vec i))  ; Current token is operator
+                 (< (dec i) (count token-vec))  ; Has left operand
+                 (< (inc i) (count token-vec))) ; Has right operand
+          true  ; Found infix pattern
+          (recur (inc i)))))))
+
+(defn- known-function?
+  "Check if symbol is a known function that's likely to be called with operators as arguments."
+  [sym]
+  (contains? #{'apply 'reduce 'map 'filter 'partial 'comp} sym))
+
+(defn- is-function-call?
+  "Check if a list looks like a function call.
+   Uses heuristics: if it starts with a known function and contains operators,
+   those operators are likely arguments, not infix. Otherwise, if it contains
+   infix patterns, it's probably a grouped infix expression."
+  [lst]
+  (and (seq? lst) 
+       (not (empty? lst))
+       (symbol? (first lst))  ; Must start with a symbol
+       (not (operator? (first lst)))  ; Not an operator
+       (or (known-function? (first lst))  ; Known function with operators as args
+           (not (contains-infix-pattern? lst)))))  ; Or no infix patterns
+
 (defn- flatten-tokens
-  "Flatten nested expressions while marking parentheses groups."
+  "Flatten nested expressions while preserving function calls as single tokens."
   [expr]
   (reduce
    (fn [acc token]
-     (if (and (seq? token) (not (empty? token)))
+     (cond
+       ;; Function call - keep as single token
+       (is-function-call? token)
+       (conj acc token)
+       
+       ;; Infix grouping with operators - flatten with parens
+       (and (seq? token) (not (empty? token)) (contains-infix-pattern? token))
        (-> acc
            (conj :lparen)
            (into (flatten-tokens token))
            (conj :rparen))
+       
+       ;; Simple list without operators - keep as single token (like vector literals)
+       (and (seq? token) (not (empty? token)))
+       (conj acc token)
+       
+       ;; Regular token
+       :else
        (conj acc token)))
    []
    expr))
