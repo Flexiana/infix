@@ -199,6 +199,63 @@ Arrow lambdas (`=>`) are completely separate from threading (`->`):
 
 ---
 
+### 5. Function Definitions with `infix-defn`
+
+Define functions with infix expressions in their bodies:
+
+#### Basic Functions
+```clojure
+(infix-defn square [x] x * x)
+(square 4)  ; => 16
+
+(infix-defn add-multiply [x y z] x + y * z)
+(add-multiply 1 2 5)  ; => 11  (1 + (2 * 5))
+```
+
+#### Functions with Comparisons and Logic
+```clojure
+(infix-defn in-range? [x min-val max-val] 
+  x >= min-val and x <= max-val)
+(in-range? 5 1 10)  ; => true
+
+(infix-defn greater-than-ten? [x] x > 10)
+(greater-than-ten? 15)  ; => true
+```
+
+#### Functions with Threading Operations
+```clojure
+(infix-defn process-users [users]
+  users 
+  ->> (filter :active?)
+  ->> (map :name)
+  ->> (take 10)
+  ->> sort)
+
+(infix-defn calculate-discount [order]
+  (:total order)
+  -> (* 0.1)        ; 10% discount
+  -> (max 5)        ; minimum $5 discount  
+  -> (min 100))     ; maximum $100 discount
+```
+
+#### Functions with Docstrings
+```clojure
+(infix-defn circle-area
+  "Calculate the area of a circle given radius"
+  [radius]
+  3.14159 * radius * radius)
+```
+
+#### Complex Mathematical Functions
+```clojure
+(infix-defn quadratic [a b c x]
+  a * x * x + b * x + c)
+
+(quadratic 1 2 3 1)  ; => 6  (1*1*1 + 2*1 + 3)
+```
+
+---
+
 ## 🧪 Examples
 
 ### Mathematical Expressions
@@ -277,10 +334,17 @@ Arrow lambdas (`=>`) are completely separate from threading (`->`):
 - ✅ Complex expressions: `x => x * x + 1`
 - ✅ Smart disambiguation from threading operators
 
+**✅ v0.3 - Function Definitions**
+- ✅ `infix-defn` macro for function definitions with infix bodies
+- ✅ Support for docstrings: `(infix-defn name "doc" [params] body)`
+- ✅ Complex expressions with threading, comparisons, and arithmetic
+- ✅ Full integration with all existing infix features
+
 **🔄 Future Roadmap**
-- `v0.3`: Enhanced function syntax, comma-separated parameters
-- `v0.3`: Collection operators (`in`, `not-in`), helper functions
-- `v0.4`: Advanced features, better error messages
+- `v0.4`: Function call syntax (`fn(args)`), comma-separated parameters
+- `v0.4`: Early return mechanism with `return` statement
+- `v0.5`: Collection operators (`in`, `not-in`), helper functions
+- `v0.6`: Advanced features, better error messages
 
 ---
 
@@ -309,6 +373,18 @@ user=> (map (infix x => x * x) [1 2 3 4])
 
 user=> ((infix (x y) => x + y * 2) 3 4)
 11
+
+user=> (infix-defn square [x] x * x)
+#'user/square
+
+user=> (square 5)
+25
+
+user=> (infix-defn process-data [items] items ->> (filter :active?) ->> count)
+#'user/process-data
+
+user=> (process-data [{:active? true} {:active? false} {:active? true}])
+2
 ```
 
 ---

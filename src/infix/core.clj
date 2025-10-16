@@ -143,3 +143,24 @@
                                          expr))
                                      body)))]
     `(let ~processed-bindings ~processed-body)))
+
+(defmacro infix-defn
+  "Define a function with infix expressions in the body.
+  
+  Example:
+    (infix-defn square [x] x * x)
+    => (defn square [x] (* x x))"
+  [fn-name & args]
+  (let [[docstring params body] (if (string? (first args))
+                                  ;; With docstring: (infix-defn name "doc" [params] body)
+                                  [(first args) (second args) (drop 2 args)]
+                                  ;; Without docstring: (infix-defn name [params] body)
+                                  [nil (first args) (rest args)])
+        ;; Process the body using the same logic as infix macro
+        processed-body (-> body
+                           (as-> processed (map process-nested-infix processed))
+                           parser/parse-infix
+                           compiler/compile-postfix)]
+    (if docstring
+      `(defn ~fn-name ~docstring ~params ~processed-body)
+      `(defn ~fn-name ~params ~processed-body))))
