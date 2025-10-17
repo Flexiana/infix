@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.github.jiriknesl</groupId>
+  <artifactId>infix</artifactId>
+  <version>1.0-rc1</version>
+  <name>infix</name>
+  <description>Readable Math and Dataflow Syntax for Clojure with infix expressions, OOP interop, and threading macros</description>
+  <url>https://github.com/jiriknesl/infix</url>
+  
+  <licenses>
+    <license>
+      <name>Eclipse Public License 2.0</name>
+      <url>https://www.eclipse.org/legal/epl-2.0/</url>
+    </license>
+  </licenses>
+  
+  <developers>
+    <developer>
+      <name>Jiri Knesl</name>
+    </developer>
+  </developers>
+  
+  <scm>
+    <url>https://github.com/jiriknesl/infix</url>
+    <connection>scm:git:git://github.com/jiriknesl/infix.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jiriknesl/infix.git</developerConnection>
+  </scm>
+  
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>1.11.1</version>
+    </dependency>
+  </dependencies>
+  
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+    <testSourceDirectory>test</testSourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>com.theoryinpractise</groupId>
+        <artifactId>clojure-maven-plugin</artifactId>
+        <version>1.8.4</version>
+        <extensions>true</extensions>
+        <configuration>
+          <sourceDirectories>
+            <sourceDirectory>src</sourceDirectory>
+          </sourceDirectories>
+          <testSourceDirectories>
+            <testSourceDirectory>test</testSourceDirectory>
+          </testSourceDirectories>
+        </configuration>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>test</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <name>Clojars repository</name>
+      <url>https://clojars.org/repo</url>
+    </repository>
+  </repositories>
+  
+</project>

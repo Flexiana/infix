@@ -2,27 +2,53 @@
   "Compile postfix notation to Clojure forms."
   (:require [infix.parser :as parser]))
 
+;; Constants
+(def ^:private operators 
+  "Set of all supported infix operators."
+  #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '-> '->> 'some-> 'some->>})
+
+(def ^:private unary-operators 
+  "Set of unary operators."
+  #{'not})
+
+(def ^:private threading-operators 
+  "Set of threading operators."
+  #{'-> '->> 'some-> 'some->>})
+
+(def ^:private thread-first-operators 
+  "Thread-first operators."
+  #{'-> 'some->})
+
+(def ^:private thread-last-operators 
+  "Thread-last operators."
+  #{'->> 'some->>})
+
+(def ^:private nil-safe-operators 
+  "Nil-safe threading operators."
+  #{'some-> 'some->>})
+
 (defn- operator?
   "Check if token is an operator."
   [token]
-  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '-> '->> 'some-> 'some->>} token))
+  (contains? operators token))
 
 (defn- unary-operator?
   "Check if token is a unary operator."
   [token]
-  (contains? #{'not} token))
+  (contains? unary-operators token))
 
 (defn- threading-operator?
   "Check if token is a threading operator."
   [token]
-  (contains? #{'-> '->> 'some-> 'some->>} token))
+  (contains? threading-operators token))
+
 
 (defn- compile-threading
   "Convert threading operation to direct threading macro usage."
   [data operation threading-op]
   (let [threaded-form (cond
                         ;; Thread-first operators (-> some->)
-                        (contains? #{'-> 'some->} threading-op)
+                        (contains? thread-first-operators threading-op)
                         (if (seq? operation)
                           ;; Function call: thread data as first argument
                           (list* (first operation) data (rest operation))
@@ -30,7 +56,7 @@
                           (list operation data))
                         
                         ;; Thread-last operators (->> some->>)  
-                        (contains? #{'->> 'some->>} threading-op)
+                        (contains? thread-last-operators threading-op)
                         (if (seq? operation)
                           ;; Function call: thread data as last argument
                           (concat operation [data])
@@ -40,7 +66,7 @@
                         :else
                         (throw (ex-info "Unknown threading operator" {:operator threading-op})))]
     ;; Wrap with some-> or some->> if nil-safe
-    (if (contains? #{'some-> 'some->>} threading-op)
+    (if (contains? nil-safe-operators threading-op)
       (list threading-op data operation)
       threaded-form)))
 

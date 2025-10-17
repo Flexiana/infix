@@ -1,6 +1,20 @@
 (ns infix.parser
   "Infix expression parser using Shunting Yard algorithm."
-  (:require [infix.precedence :as prec]))
+  (:require [infix.precedence :as prec]
+            [clojure.string :as str]))
+
+;; Constants
+(def ^:private operators 
+  "Set of all supported infix operators."
+  #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '-> '->> 'some-> 'some->>})
+
+(def ^:private known-functions
+  "Set of functions that commonly take operators as arguments."
+  #{'apply 'reduce 'map 'filter 'partial 'comp})
+
+(def ^:private special-forms
+  "Set of Clojure special forms to avoid in lambda parameters."
+  #{'fn 'defn 'let 'if 'when 'cond})
 
 (defn- function-call-pattern?
   "Check if a symbol could be followed by function call syntax."
@@ -10,14 +24,48 @@
          ;; Valid function name: starts with letter or special chars, contains valid chars
          (re-matches #"^[a-zA-Z_\-\+\*\/\<\>\=\!\?\$\%\&\.][a-zA-Z0-9_\-\+\*\/\<\>\=\!\?\$\%\&\.]*$" s))))
 
-(defn- comma-separated-args
-  "Split comma-separated arguments into individual arguments."
-  [args-list]
-  (if (empty? args-list)
-    []
-    ;; For now, just return the arguments as-is since commas are whitespace in Clojure
-    ;; We'll handle this when we get actual comma-separated syntax working
-    args-list))
+(defn- oop-method-call-pattern?
+  "Check if a symbol looks like obj.method for OOP method calls."
+  [sym]
+  (and (symbol? sym)
+       (let [s (str sym)]
+         ;; Contains a dot and looks like obj.method
+         (and (re-find #"\." s)
+              (not (re-find #"^\." s))  ; Not starting with dot (that's .method syntax)
+              (re-matches #"^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*$" s)))))
+
+(defn- split-oop-method-call
+  "Split obj.method into [obj method]."
+  [sym]
+  (let [s (str sym)
+        [obj-str method-str] (str/split s #"\." 2)]
+    [(symbol obj-str) (symbol method-str)]))
+
+(defn- object-creation-pattern?
+  "Check if a symbol looks like ClassName.new for object creation."
+  [sym]
+  (and (symbol? sym)
+       (let [s (str sym)]
+         ;; Looks like ClassName.new where ClassName starts with uppercase
+         (and (re-find #"\." s)
+              (not (re-find #"^\." s))
+              (re-matches #"^[A-Z][a-zA-Z0-9_]*\.new$" s)))))
+
+(defn- split-object-creation
+  "Split ClassName.new into [ClassName new]."
+  [sym]
+  (let [s (str sym)
+        [class-str _] (str/split s #"\." 2)]
+    [(symbol class-str) 'new]))
+
+(defn- constructor-call-pattern?
+  "Check if a symbol looks like a constructor call (ClassName where ClassName starts with uppercase)."
+  [sym]
+  (and (symbol? sym)
+       (let [s (str sym)]
+         ;; Constructor: starts with uppercase letter
+         (re-matches #"^[A-Z][a-zA-Z0-9_]*$" s))))
+
 
 (defn transform-function-calls
   "Transform function call syntax by detecting symbol followed by list pattern."
@@ -31,13 +79,39 @@
           (seq result)  ; Convert back to list/seq
           (let [current (items i)
                 next-item (get items (inc i))]
-            (if (and (function-call-pattern? current)
-                     (sequential? next-item))
-              ;; Found function call pattern
+            (cond
+              ;; Check for object creation pattern: ClassName.new(args)
+              (and (object-creation-pattern? current)
+                   (sequential? next-item))
+              (let [[class-name _] (split-object-creation current)
+                    transformed-args (map transform-function-calls next-item)
+                    constructor-call (cons 'new (cons class-name transformed-args))]
+                (recur (+ i 2) (conj result constructor-call)))
+              
+              ;; Check for constructor call pattern: ClassName(args) 
+              (and (constructor-call-pattern? current)
+                   (sequential? next-item))
+              (let [transformed-args (map transform-function-calls next-item)
+                    constructor-call (cons 'new (cons current transformed-args))]
+                (recur (+ i 2) (conj result constructor-call)))
+              
+              ;; Check for OOP method call pattern: obj.method(args)
+              (and (oop-method-call-pattern? current)
+                   (sequential? next-item))
+              (let [[obj method] (split-oop-method-call current)
+                    transformed-args (map transform-function-calls next-item)
+                    method-call (cons (symbol (str "." method)) (cons obj transformed-args))]
+                (recur (+ i 2) (conj result method-call)))
+              
+              ;; Check for regular function call pattern: fn(args)
+              (and (function-call-pattern? current)
+                   (sequential? next-item))
               (let [transformed-args (map transform-function-calls next-item)
                     fn-call (cons current transformed-args)]
                 (recur (+ i 2) (conj result fn-call)))
+              
               ;; Not a function call pattern
+              :else
               (recur (inc i) (conj result (transform-function-calls current))))))))
     
     :else
@@ -51,14 +125,14 @@
 (defn- operator?
   "Check if token is an operator."
   [token]
-  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '-> '->> 'some-> 'some->>} token))
+  (contains? operators token))
 
 (defn- lambda-parameter?
   "Check if a token looks like a lambda parameter."
   [token]
   (and (symbol? token)
        (not (operator? token))
-       (not (contains? #{'fn 'defn 'let 'if 'when 'cond} token))))
+       (not (contains? special-forms token))))
 
 (defn- lambda-parameters?
   "Check if a token looks like lambda parameters (symbol or parameter list)."
@@ -95,7 +169,7 @@
 (defn- known-function?
   "Check if symbol is a known function that's likely to be called with operators as arguments."
   [sym]
-  (contains? #{'apply 'reduce 'map 'filter 'partial 'comp} sym))
+  (contains? known-functions sym))
 
 (defn- is-function-call?
   "Check if a list looks like a function call.

@@ -25,7 +25,7 @@ infix/
 
 ## Implementation Phases
 
-### Phase 1: Project Setup and Basic Infrastructure (v0.1 foundation)
+### Phase 1: Project Setup and Basic Infrastructure (1.0-rc1 foundation)
 **Goal**: Set up project structure and basic tokenization
 
 #### Step 1.1: Project Setup
@@ -45,7 +45,7 @@ infix/
 - Handle symbols, numbers, and basic operators
 - Return sequence of tokens
 
-### Phase 2: Basic Arithmetic Parser (v0.1 core)
+### Phase 2: Basic Arithmetic Parser (1.0-rc1 core)
 **Goal**: Parse and compile simple arithmetic expressions
 
 #### Step 2.1: Precedence Table (TDD)
@@ -97,7 +97,7 @@ infix/
 - Wire together parser and compiler
 - Handle macro expansion correctly
 
-### Phase 3: Comparison and Boolean Operators (v0.1 complete)
+### Phase 3: Comparison and Boolean Operators (1.0-rc1 1 complete)
 **Goal**: Support comparison and boolean logic
 
 #### Step 3.1: Comparison Operators (TDD)
@@ -124,7 +124,7 @@ infix/
 - Boolean operators have lower precedence than comparisons
 - Handle short-circuiting behavior
 
-### Phase 4: Direct Threading Macro Support (v0.1 complete) ✅
+### Phase 4: Direct Threading Macro Support (1.0-rc1 1 complete) ✅
 **Goal**: Support native Clojure threading macros as infix operators
 
 #### Step 4.1: Threading Operators Implementation (TDD) ✅
@@ -153,7 +153,7 @@ infix/
 - ✅ Integration with arithmetic, boolean, and comparison operators
 - ✅ Edge cases and performance testing
 
-### Phase 5: Function Call Syntax (v0.2 start)
+### Phase 5: Function Call Syntax (1.0-rc1 2 start)
 **Goal**: Support `fn(args)` syntax
 
 #### Step 5.1: Function Calls (TDD)
@@ -169,7 +169,7 @@ infix/
 - Handle comma-separated arguments
 - Support nested function calls
 
-### Phase 6: `infix-let` Macro (v0.2)
+### Phase 6: `infix-let` Macro (1.0-rc1 2)
 **Goal**: Implement sequential bindings with infix RHS
 
 #### Step 6.1: Basic `infix-let` (TDD)
@@ -195,7 +195,7 @@ infix/
                      doubled))))
 ```
 
-### Phase 7: Arrow Lambdas (v0.2)
+### Phase 7: Arrow Lambdas (1.0-rc1 2)
 **Goal**: Support `x -> expr` syntax
 
 #### Step 7.1: Simple Arrow Lambdas (TDD)
@@ -217,7 +217,7 @@ infix/
   (is (= '(fn [x y] (+ x y)) (macroexpand-1 '(infix (x, y) -> x + y)))))
 ```
 
-### Phase 8: `infix-defn` and Early Returns (v0.2 complete)
+### Phase 8: `infix-defn` and Early Returns (1.0-rc1 2 complete)
 **Goal**: Implement functions with early returns
 
 #### Step 8.1: Basic `infix-defn` (TDD)
@@ -243,7 +243,7 @@ infix/
 - Define `Return` type for non-local exits
 - Wrap function body in try-catch
 
-### Phase 9: Advanced Features (v0.3)
+### Phase 9: Advanced Features (1.0-rc1 3)
 **Goal**: Implement membership tests, sorting helpers
 
 #### Step 9.1: Membership Tests (TDD)
@@ -259,7 +259,7 @@ infix/
   (is (= "longest" (infix max-by(count, ["a" "bb" "longest"])))))
 ```
 
-### Phase 10: Error Handling and Polish (v0.4)
+### Phase 10: Error Handling and Polish (1.0-rc1 4)
 **Goal**: Improve error messages and debugging
 
 #### Step 10.1: Parser Error Messages (TDD)
@@ -350,7 +350,7 @@ infix/
 - Nil-safe threading with proper `some->` and `some->>` behavior
 - Smart function call detection vs infix grouping
 
-### Current Status (v0.1 Complete)
+### Current Status (1.0-rc1 1 Complete)
 - **Test Coverage**: 151/151 tests passing (100% success)
 - **Operator Support**: Full arithmetic, comparison, boolean, and threading
 - **Parser**: Robust Shunting Yard with smart function call detection  

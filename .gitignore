@@ -1,0 +1,26 @@
+# Leiningen
+.lein-*
+
+# Clojure LSP / clj-kondo
+.clj-kondo/
+
+# Claude AI
+.claude/
+
+# Clojure CLI cache
+.cpcache/
+
+# Target directory (Maven/Leiningen)
+target/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -1,5 +1,9 @@
 (ns infix.precedence
-  "Operator precedence definitions and utilities.")
+  "Operator precedence definitions and utilities.
+   
+   This namespace defines the precedence and associativity rules for all
+   infix operators supported by the library. Higher precedence numbers
+   indicate higher precedence (bind more tightly).")
 
 (def ^:private precedence-map
   "Operator precedence table. Higher numbers = higher precedence."

@@ -1,13 +1,26 @@
 (ns infix.core
   "Main public API for the Infix syntax library."
   (:require [infix.parser :as parser]
-            [infix.compiler :as compiler]))
+            [infix.compiler :as compiler]
+            [infix.precedence :as prec]))
 
-(defn- operator? [token]
-  (contains? #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '-> '->> 'some-> 'some->>} token))
+(def ^:private operators 
+  "Set of all supported infix operators."
+  #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '-> '->> 'some-> 'some->>})
 
-(defn- known-function? [sym]
-  (contains? #{'apply 'reduce 'map 'filter 'partial 'comp 'max 'min 'count 'empty? 'str} sym))
+(def ^:private known-functions
+  "Set of functions that commonly take operators as arguments."
+  #{'apply 'reduce 'map 'filter 'partial 'comp 'max 'min 'count 'empty? 'str})
+
+(defn- operator? 
+  "Check if token is an operator."
+  [token]
+  (contains? operators token))
+
+(defn- known-function? 
+  "Check if symbol is a known function that might take operators as arguments."
+  [sym]
+  (contains? known-functions sym))
 
 (defn- is-infix-expression? 
   "Check if a list looks like an infix expression (not a function call)."
@@ -165,20 +178,20 @@
                              (as-> processed (map process-nested-infix processed))
                              parser/parse-infix
                              compiler/compile-postfix)
-                         ;; Multiple expressions - treat as do block with each processed individually
-                         `(do ~@(map (fn [expr]
-                                       (if (and (sequential? expr)
-                                                ;; Only process if it contains infix operators or is an infix expression
-                                                (or (some operator? expr)
-                                                    (is-infix-expression? expr)))
-                                         (-> expr
-                                             parser/transform-function-calls
-                                             (as-> processed (map process-nested-infix processed))
-                                             parser/parse-infix
-                                             compiler/compile-postfix)
-                                         ;; Otherwise just recursively process nested expressions  
-                                         (process-nested-infix expr)))
-                                     body)))]
+                         ;; Multiple expressions - apply function call transformation to the entire body first
+                         (let [transformed-body (parser/transform-function-calls body)]
+                           `(do ~@(map (fn [expr]
+                                         (if (and (sequential? expr)
+                                                  ;; Only process if it contains infix operators or is an infix expression
+                                                  (or (some operator? expr)
+                                                      (is-infix-expression? expr)))
+                                           (-> expr
+                                               (as-> processed (map process-nested-infix processed))
+                                               parser/parse-infix
+                                               compiler/compile-postfix)
+                                           ;; Otherwise just recursively process nested expressions  
+                                           (process-nested-infix expr)))
+                                       transformed-body))))]
     ;; Wrap the processed body in try-catch to handle early returns
     (let [wrapped-body `(try ~processed-body
                              (catch Exception e#
@@ -191,10 +204,19 @@
         `(defn ~fn-name ~params ~wrapped-body)))))
 
 ;; Early return mechanism using exceptions
-(defrecord ReturnValue [value])
+(def ^:private return-exception-marker "return")
 
-(defn throw-return [value]
-  (throw (ex-info "return" {:return-value value})))
+(defn- throw-return 
+  "Throw special exception for early returns."
+  [value]
+  (throw (ex-info return-exception-marker {:return-value value})))
+
+(defn- handle-return-exception 
+  "Handle early return exceptions in try-catch blocks."
+  [e]
+  (when (and (= return-exception-marker (.getMessage e))
+             (:return-value (ex-data e)))
+    (:return-value (ex-data e))))
 
 (defmacro return
   "Early return from infix-defn functions.
