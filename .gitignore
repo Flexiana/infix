@@ -3,6 +3,7 @@
 
 # Clojure LSP / clj-kondo
 .clj-kondo/
+.lsp/
 
 # Claude AI
 .claude/

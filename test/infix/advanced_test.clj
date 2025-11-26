@@ -15,7 +15,8 @@
     
     ;; Test complex boolean nesting: (true and (false or true)) and ((3 > 2) or (1 = 2))
     ;; Should be: (true and true) and (true or false) => true and true => true
-    (is (= true (infix (true and (false or true)) and ((3 > 2) or (1 = 2))))))
+    (is (= true (infix (true and (false or true)) and ((3 > 2) or (1 = 2)))))
+    )
 
   (testing "precedence with deep nesting"
     ;; Without parens: 1 + 2 * 3 + 4 > 5 and 6 < 7 or false
