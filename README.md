@@ -40,17 +40,31 @@ Into efficient Clojure that runs at full speed.
 
 ## ⚙️ Installation
 
-Once published:
+Add as a git dependency in `deps.edn`:
 
 ```clojure
 ;; deps.edn
-com.github.jiriknesl/infix {:mvn/version "1.0-rc1"}
+io.github.flexiana/infix {:git/url "https://github.com/Flexiana/infix"
+                           :git/tag "v1.0.0"
+                           :git/sha "SHORT_SHA"}
 ```
 
-or via Leiningen:
+Or clone and use locally:
+
+```bash
+git clone https://github.com/Flexiana/infix.git
+cd infix
+lein install  ;; installs to local Maven repo
+```
+
+Then add to your project:
 
 ```clojure
-[com.github.jiriknesl/infix "1.0-rc1"]
+;; deps.edn
+com.flexiana/infix {:local/root "/path/to/infix"}
+
+;; or project.clj after lein install
+[com.flexiana/infix "1.0.0"]
 ```
 
 ---
@@ -695,7 +709,7 @@ This example demonstrates:
 
 ---
 
-## 🎯 Current Status: Version 1.0-rc1
+## 🎯 Current Status: Version 1.0.0
 
 The infix library provides comprehensive infix notation support for Clojure!
 
@@ -839,7 +853,7 @@ You can use it for:
 
 ## 🧩 License
 
-Eclipse Public License 2.0 (same as Clojure)
+Apache License 2.0
 
 ---
 

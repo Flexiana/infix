@@ -112,7 +112,7 @@
     (is (= 13 (infix (max 2 3) + (count [1 2]) * 5)))  ; 3 + (2 * 5) = 3 + 10 = 13
     
     ;; Complex precedence with boolean logic
-    (is (= true (infix (count [1 2 3]) > (max 1 2) and (min 5 10) < 10))))  ; 3 > 2 and 5 < 10 = true and true = true
+    (is (= true (infix (count [1 2 3]) > (max 1 2) and (min 5 10) < 10)))))  ; 3 > 2 and 5 < 10 = true and true = true
 
 (deftest function-call-syntax-variations
   (testing "different syntax variations and edge cases"  
@@ -126,5 +126,4 @@
     
     ;; Function calls with conditional expressions
     (is (= 5 (infix (if true (max 3 5) (min 1 2)))))  ; if true then max(3,5) else min(1,2) = 5
-    (is (= 1 (infix (if false (max 3 5) (min 1 2))))))  ; if false then max(3,5) else min(1,2) = 1
-    ))
+    (is (= 1 (infix (if false (max 3 5) (min 1 2)))))))  ; if false then max(3,5) else min(1,2) = 1

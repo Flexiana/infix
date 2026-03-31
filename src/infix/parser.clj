@@ -20,6 +20,7 @@
   "Check if a symbol could be followed by function call syntax."
   [sym]
   (and (symbol? sym)
+       (not (contains? operators sym))
        (let [s (str sym)]
          ;; Valid function name: starts with letter or special chars, contains valid chars
          (re-matches #"^[a-zA-Z_\-\+\*\/\<\>\=\!\?\$\%\&\.][a-zA-Z0-9_\-\+\*\/\<\>\=\!\?\$\%\&\.]*$" s))))
@@ -82,22 +83,22 @@
             (cond
               ;; Check for object creation pattern: ClassName.new(args)
               (and (object-creation-pattern? current)
-                   (sequential? next-item))
+                   (seq? next-item))
               (let [[class-name _] (split-object-creation current)
                     transformed-args (map transform-function-calls next-item)
                     constructor-call (cons 'new (cons class-name transformed-args))]
                 (recur (+ i 2) (conj result constructor-call)))
               
-              ;; Check for constructor call pattern: ClassName(args) 
+              ;; Check for constructor call pattern: ClassName(args)
               (and (constructor-call-pattern? current)
-                   (sequential? next-item))
+                   (seq? next-item))
               (let [transformed-args (map transform-function-calls next-item)
                     constructor-call (cons 'new (cons current transformed-args))]
                 (recur (+ i 2) (conj result constructor-call)))
               
               ;; Check for OOP method call pattern: obj.method(args)
               (and (oop-method-call-pattern? current)
-                   (sequential? next-item))
+                   (seq? next-item))
               (let [[obj method] (split-oop-method-call current)
                     transformed-args (map transform-function-calls next-item)
                     method-call (cons (symbol (str "." method)) (cons obj transformed-args))]
@@ -105,15 +106,16 @@
               
               ;; Check for regular function call pattern: fn(args)
               (and (function-call-pattern? current)
-                   (sequential? next-item))
+                   (seq? next-item))
               (let [transformed-args (map transform-function-calls next-item)
                     fn-call (cons current transformed-args)]
                 (recur (+ i 2) (conj result fn-call)))
               
-              ;; Not a function call pattern
+              ;; Not a function call pattern — don't recurse into sub-expressions
+              ;; as they are standard Clojure forms, not infix function-call syntax
               :else
-              (recur (inc i) (conj result (transform-function-calls current))))))))
-    
+              (recur (inc i) (conj result current)))))))
+
     :else
     expr))
 

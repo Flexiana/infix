@@ -3,17 +3,17 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.github.jiriknesl</groupId>
+  <groupId>com.flexiana</groupId>
   <artifactId>infix</artifactId>
-  <version>1.0-rc1</version>
+  <version>1.0.0</version>
   <name>infix</name>
   <description>Readable Math and Dataflow Syntax for Clojure with infix expressions, OOP interop, and threading macros</description>
-  <url>https://github.com/jiriknesl/infix</url>
+  <url>https://github.com/Flexiana/infix</url>
   
   <licenses>
     <license>
-      <name>Eclipse Public License 2.0</name>
-      <url>https://www.eclipse.org/legal/epl-2.0/</url>
+      <name>Apache License 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
     </license>
   </licenses>
   
@@ -24,9 +24,9 @@
   </developers>
   
   <scm>
-    <url>https://github.com/jiriknesl/infix</url>
-    <connection>scm:git:git://github.com/jiriknesl/infix.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jiriknesl/infix.git</developerConnection>
+    <url>https://github.com/Flexiana/infix</url>
+    <connection>scm:git:git://github.com/Flexiana/infix.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/Flexiana/infix.git</developerConnection>
   </scm>
   
   <dependencies>

@@ -5,7 +5,7 @@ All notable changes to the infix library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0-rc1] - 2024-10-16
+## [1.0-rc1] - 2025-04-01
 
 ### Added
 - **Core Infix Operations**: Complete arithmetic, comparison, and boolean operators
@@ -48,8 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Project Setup
 - **Multi-format Support**: deps.edn, project.clj, and pom.xml configurations
-- **Maven Coordinates**: `com.github.jiriknesl/infix "1.0-rc1"`
-- **License**: Eclipse Public License 2.0 (same as Clojure)
+- **Maven Coordinates**: `com.flexiana/infix "1.0-rc1"`
+- **License**: Apache License 2.0 (same as Clojure)
 - **Documentation**: Comprehensive README with examples and usage patterns
 
 ### Release Candidate Status

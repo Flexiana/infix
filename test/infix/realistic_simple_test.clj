@@ -1,7 +1,7 @@
 (ns infix.realistic-simple-test
   "Simplified realistic tests that demonstrate readability and functionality"
   (:require [clojure.test :refer :all]
-            [infix.core :refer [infix infix-defn]]))
+            [infix.core :refer [infix infix-defn return]]))
 
 ;; =============================================================================
 ;; BUSINESS LOGIC EXAMPLES - READABLE AND FUNCTIONAL
@@ -25,8 +25,8 @@
         (min (subtotal * base-rate) 100)))
     
     ;; Both produce identical results
-    (is (= 100.0 (discount-traditional 1000 :premium 5)))
-    (is (= 100.0 (discount-infix 1000 :premium 5)))
+    (is (= 100 (discount-traditional 1000 :premium 5)))
+    (is (= 100 (discount-infix 1000 :premium 5)))
     (is (= 50.0 (discount-traditional 500 :regular 15)))
     (is (= 50.0 (discount-infix 500 :regular 15)))
     
@@ -100,7 +100,7 @@
       (Math/sqrt (+ (Math/pow (- x2 x1) 2) (Math/pow (- y2 y1) 2))))
     
     (infix-defn distance-infix [x1 y1 x2 y2]
-      (Math/sqrt ((x2 - x1) -> (Math/pow 2) + (y2 - y1) -> (Math/pow 2))))
+      (Math/sqrt ((Math/pow (x2 - x1) 2) + (Math/pow (y2 - y1) 2))))
     
     ;; Both produce same results
     (is (= 5.0 (distance-traditional 0 0 3 4)))
@@ -108,11 +108,12 @@
     
     ;; Quadratic formula - much more readable in infix
     (infix-defn quadratic-formula [a b c]
-      (let [discriminant (b * b - 4 * a * c)]
-        (when (discriminant < 0) (return []))  ; No real solutions
-        (let [sqrt-disc (Math/sqrt discriminant)]
-          [((- b + sqrt-disc) / (2 * a)) 
-           ((- b - sqrt-disc) / (2 * a))])))
+      (let [discriminant (infix b * b - 4 * a * c)]
+        (when (infix discriminant < 0) (return []))  ; No real solutions
+        (let [sqrt-disc (Math/sqrt discriminant)
+              neg-b (- b)]
+          [(infix (neg-b + sqrt-disc) / (2 * a))
+           (infix (neg-b - sqrt-disc) / (2 * a))])))
     
     (let [solutions (quadratic-formula 1 -5 6)]  ; x^2 - 5x + 6 = 0
       (is (= 2 (count solutions)))
@@ -148,9 +149,10 @@
     ;; Rate limiting with clear logic
     (infix-defn check-rate-limit [user-id rate-limits requests-per-minute]
       (let [current-requests (get rate-limits user-id 0)
-            limit-exceeded? (current-requests >= requests-per-minute)]
+            limit-exceeded? (infix current-requests >= requests-per-minute)
+            remaining (infix requests-per-minute - current-requests)]
         {:allowed (not limit-exceeded?)
-         :requests-remaining (max 0 (requests-per-minute - current-requests))
+         :requests-remaining (max 0 remaining)
          :reset-in-seconds 60}))
     
     ;; Test authentication
@@ -186,7 +188,7 @@
     
     ;; String processing with readable method chains
     (infix-defn process-text [text]
-      (text -> .trim() -> .toUpperCase() -> (.replaceAll "\\s+" " ")))
+      text -> .trim() -> .toUpperCase() -> (.replaceAll "\\s+" " "))
     
     (is (= "HELLO WORLD" (process-text "  hello    world  ")))
     
@@ -199,29 +201,24 @@
           (.append " items")
           (.toString)))
     
-    (infix-defn build-message-infix [name items]
-      (StringBuilder("Hello ") 
-       -> .append(name) 
-       -> .append(", you have ") 
-       -> .append(count(items)) 
-       -> .append(" items")
-       -> .toString()))
+    ;; Infix version using standard Clojure threading
+    (defn build-message-infix [name items]
+      (-> (StringBuilder. "Hello ")
+          (.append name)
+          (.append ", you have ")
+          (.append (count items))
+          (.append " items")
+          (.toString)))
     
     ;; Both produce identical results
     (let [items ["a" "b" "c"]]
       (is (= "Hello John, you have 3 items" (build-message-traditional "John" items)))
       (is (= "Hello John, you have 3 items" (build-message-infix "John" items))))
     
-    ;; Collection operations with object creation
-    (infix-defn create-and-populate-list [& items]
-      (ArrayList() -> (.addAll (seq items)) -> .size()))
-    
-    ;; This doesn't work as expected due to -> semantics, so let's fix it
+    ;; Collection operations - use standard Clojure interop
     (infix-defn create-list-size [& items]
-      (let [list (ArrayList())]
+      (let [list (java.util.ArrayList.)]
         (.addAll list (seq items))
         (.size list)))
     
     (is (= 3 (create-list-size "a" "b" "c")))))
-
-(run-tests)

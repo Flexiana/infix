@@ -1,4 +1,4 @@
-(ns infix.threading_test
+(ns infix.threading-test
   (:require [clojure.test :refer [deftest is testing]]
             [infix.core :refer [infix]]))
 

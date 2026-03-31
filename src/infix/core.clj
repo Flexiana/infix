@@ -9,8 +9,9 @@
   #{'+ '- '* '/ '< '<= '> '>= '= 'not= 'and 'or 'not '-> '->> 'some-> 'some->>})
 
 (def ^:private known-functions
-  "Set of functions that commonly take operators as arguments."
-  #{'apply 'reduce 'map 'filter 'partial 'comp 'max 'min 'count 'empty? 'str})
+  "Set of functions/macros that commonly take operators as arguments."
+  #{'apply 'reduce 'map 'filter 'partial 'comp 'max 'min 'count 'empty? 'str
+    'infix 'infix-let 'infix-defn 'return 'when 'if 'cond 'let 'do 'fn 'defn})
 
 (defn- operator? 
   "Check if token is an operator."
@@ -29,11 +30,23 @@
        (not (empty? lst))
        ;; NOT starting with an operator (that would be a function call like (+ 1 2))
        (not (operator? (first lst)))
-       ;; Has infix operators between operands (not just as first element)
-       (let [operators-in-middle (some operator? (rest lst))]
-         (and operators-in-middle
-              ;; And it's not a known function that might take operators as arguments
-              (not (known-function? (first lst)))))))
+       ;; Check if it starts with a literal value (boolean, number, etc.) followed by an operator
+       ;; This handles cases like (false or true) which Clojure might try to evaluate
+       (let [first-elem (first lst)
+             second-elem (second lst)
+             starts-with-literal (or (boolean? first-elem)
+                                    (number? first-elem)
+                                    (string? first-elem)
+                                    (keyword? first-elem)
+                                    (nil? first-elem))
+             has-operator-after-literal (and starts-with-literal
+                                            (operator? second-elem))]
+         (or has-operator-after-literal
+             ;; Has infix operators between operands (not just as first element)
+             (let [operators-in-middle (some operator? (rest lst))]
+               (and operators-in-middle
+                    ;; And it's not a known function that might take operators as arguments
+                    (not (known-function? (first lst)))))))))
 
 (defn- process-nested-infix
   "Recursively process nested infix expressions."
@@ -141,20 +154,22 @@
         processed-body (if (= 1 (count body))
                          ;; Single expression body
                          (let [expr (first body)]
-                           (if (sequential? expr)
+                           (if (and (sequential? expr)
+                                    (is-infix-expression? expr))
                              (-> expr
                                  (as-> processed (map process-nested-infix processed))
                                  parser/parse-infix
                                  compiler/compile-postfix)
-                             expr))
+                             (process-nested-infix expr)))
                          ;; Multiple expressions - treat as do block
                          `(do ~@(map (fn [expr]
-                                       (if (sequential? expr)
+                                       (if (and (sequential? expr)
+                                                (is-infix-expression? expr))
                                          (-> expr
                                              (as-> processed (map process-nested-infix processed))
                                              parser/parse-infix
                                              compiler/compile-postfix)
-                                         expr))
+                                         (process-nested-infix expr)))
                                      body)))]
     `(let ~processed-bindings ~processed-body)))
 
@@ -170,9 +185,13 @@
                                   [(first args) (second args) (drop 2 args)]
                                   ;; Without docstring: (infix-defn name [params] body)
                                   [nil (first args) (rest args)])
+        ;; Check if body has bare operator symbols at the top level,
+        ;; indicating it's a single infix expression (e.g., x * x, x >= min-val and x <= max-val)
+        has-bare-operators? (and (> (count body) 1)
+                                (some #(and (symbol? %) (operator? %)) body))
         ;; Process the body - support multiple expressions
-        processed-body (if (= 1 (count body))
-                         ;; Single expression body - process as infix expression
+        processed-body (if (or (= 1 (count body)) has-bare-operators?)
+                         ;; Single infix expression body - process as infix
                          (-> body
                              parser/transform-function-calls
                              (as-> processed (map process-nested-infix processed))
@@ -182,14 +201,12 @@
                          (let [transformed-body (parser/transform-function-calls body)]
                            `(do ~@(map (fn [expr]
                                          (if (and (sequential? expr)
-                                                  ;; Only process if it contains infix operators or is an infix expression
-                                                  (or (some operator? expr)
-                                                      (is-infix-expression? expr)))
+                                                  (is-infix-expression? expr))
                                            (-> expr
                                                (as-> processed (map process-nested-infix processed))
                                                parser/parse-infix
                                                compiler/compile-postfix)
-                                           ;; Otherwise just recursively process nested expressions  
+                                           ;; Otherwise just recursively process nested expressions
                                            (process-nested-infix expr)))
                                        transformed-body))))]
     ;; Wrap the processed body in try-catch to handle early returns
@@ -206,8 +223,8 @@
 ;; Early return mechanism using exceptions
 (def ^:private return-exception-marker "return")
 
-(defn- throw-return 
-  "Throw special exception for early returns."
+(defn throw-return
+  "Throw special exception for early returns. Used by the return macro."
   [value]
   (throw (ex-info return-exception-marker {:return-value value})))
 

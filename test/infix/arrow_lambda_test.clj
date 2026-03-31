@@ -24,13 +24,13 @@
     (is (= [2 6 12] (map (infix x => x * x + x) [1 2 3])))  ; x² + x: 1+1=2, 4+2=6, 9+3=12
     
     ;; Boolean logic
-    (is (= [true false false] (map (infix x => x > 0 and x < 3) [1 2 3])))
+    (is (= [true true false] (map (infix x => x > 0 and x < 3) [1 2 3])))
     
     ;; Threading operations
     (is (= ["1" "2" "3"] (map (infix x => x -> str) [1 2 3])))
     
     ;; Mixed operations  
-    (is (= [2.5 5.0 7.5] (map (infix x => (x * 2) + (x / 2)) [1 2 3])))))
+    (is (= [5/2 5 15/2] (map (infix x => (x * 2) + (x / 2)) [1 2 3])))))
 
 (deftest multi-parameter-arrow-lambdas
   (testing "multi-parameter arrow lambdas"
@@ -42,7 +42,7 @@
     (is (= 14 ((infix (x y z) => x + y * z) 2 3 4)))  ; 2 + (3 * 4) = 14
     
     ;; Parameters in complex expressions
-    (is (= 40 ((infix (a b) => (a + b) * (a - b)) 7 3))))  ; (7+3) * (7-3) = 10 * 4 = 40
+    (is (= 40 ((infix (a b) => (a + b) * (a - b)) 7 3)))))  ; (7+3) * (7-3) = 10 * 4 = 40
 
 (deftest arrow-lambdas-with-function-calls
   (testing "arrow lambdas with function calls and nested expressions"
@@ -64,10 +64,10 @@
              (map (infix x => x * multiplier) [1 4 9]))))
     
     ;; Nested usage
-    (is (= [[1 4] [4 16] [9 36]] 
-           (map (fn [x] 
-                  [(infix y => y) x
-                   (infix y => y * y) x]) [1 4 9])))
+    (is (= [[1 1] [4 16] [9 81]]
+           (map (fn [x]
+                  [((infix y => y) x)
+                   ((infix y => y * y) x)]) [1 4 9])))
     
     ;; With reduce
     (is (= 10 (reduce (infix (acc x) => acc + x) 0 [1 2 3 4])))
@@ -87,7 +87,7 @@
     (is (= [6 12 18] (map (infix x => x * (2 + 1)) [2 4 6])))  ; x * 3
     
     ;; Complex precedence
-    (is (= [4 6 8] (map (infix x => x * 2 + 1 - 1) [2 3 4]))))  ; (x * 2) + 1 - 1 = x * 2
+    (is (= [4 6 8] (map (infix x => x * 2 + 1 - 1) [2 3 4])))))  ; (x * 2) + 1 - 1 = x * 2
 
 (deftest arrow-lambda-edge-cases
   (testing "edge cases and error scenarios"
@@ -108,12 +108,12 @@
   (testing "macro expansion produces correct fn forms"
     ;; Simple lambda
     (is (= '(fn [x] (* x x))
-           (macroexpand-1 '(infix x => x * x))))
-    
+           (macroexpand-1 '(infix.core/infix x => x * x))))
+
     ;; Multi-parameter lambda
     (is (= '(fn [x y] (+ x y))
-           (macroexpand-1 '(infix (x y) => x + y))))
-    
+           (macroexpand-1 '(infix.core/infix (x y) => x + y))))
+
     ;; Complex expression
     (is (= '(fn [x] (+ (* x x) x))
-           (macroexpand-1 '(infix x => x * x + x))))))
+           (macroexpand-1 '(infix.core/infix x => x * x + x))))))

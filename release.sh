@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION="1.0-rc1"
+VERSION="1.0.0"
 echo "Preparing release for infix library v$VERSION"
 
 # Verify all tests pass
@@ -17,15 +17,16 @@ fi
 # Create git tag if in git repo
 if [ -d ".git" ]; then
     echo "Creating git tag v$VERSION..."
-    git tag -a "v$VERSION" -m "Release candidate v$VERSION - Feature complete infix library"
+    git tag -a "v$VERSION" -m "Release v$VERSION - Feature complete infix library"
     echo "Tag created. Push with: git push origin v$VERSION"
 fi
 
 echo "Release preparation complete!"
-echo "To deploy to Clojars:"
-echo "  With Leiningen: lein deploy clojars"
-echo "  With deps.edn:  clojure -T:build deploy"
+echo "To use: clone this repo or add as a git dependency"
 echo ""
-echo "Maven coordinates:"
-echo "  [com.github.jiriknesl/infix \"$VERSION\"]"
-echo "  com.github.jiriknesl/infix {:mvn/version \"$VERSION\"}"
+echo "Git dependency (deps.edn):"
+echo "  com.flexiana/infix {:git/url \"https://github.com/jiriknesl/infix\" :git/tag \"v$VERSION\" :git/sha \"...\"}"
+echo ""
+echo "Maven coordinates (v$VERSION):"
+echo "  [com.flexiana/infix \"$VERSION\"]"
+echo "  com.flexiana/infix {:mvn/version \"$VERSION\"}"

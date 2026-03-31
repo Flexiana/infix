@@ -70,9 +70,9 @@
     
     ;; All three types together
     (is (= true (infix 2 * 3 + 1 > 5 and 4 <= 4 or false)))
-    (is (= false (infix 10 / 2 - 1 < 3 and true and false))))
+    (is (= false (infix 10 / 2 - 1 < 3 and true and false)))))
 
-;; Real-world complexity scenarios  
+;; Real-world complexity scenarios
 (deftest real-world-complexity
   (testing "financial calculations"
     (let [principal 1000
