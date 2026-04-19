@@ -119,6 +119,22 @@
       (is (= 'test-fn (second expanded)))
       (is (= '[x] (nth expanded 2))))))
 
+(deftest return-falsy-values
+  (testing "return preserves nil as a value"
+    (infix-defn safe-divide-nil [x y]
+      (when (infix y = 0) (return nil))
+      (infix x / y))
+    (is (nil? (safe-divide-nil 10 0)))
+    (is (= 5 (safe-divide-nil 10 2))))
+
+  (testing "return preserves false as a value"
+    (infix-defn check-even [n]
+      (when (infix n < 0) (return false))
+      (zero? (mod n 2)))
+    (is (= false (check-even -4)))
+    (is (= true (check-even 4)))
+    (is (= false (check-even 3)))))
+
 (deftest multiple-returns
   (testing "functions with multiple return points"
     (infix-defn categorize-number [n]
