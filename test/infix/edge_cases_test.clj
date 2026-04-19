@@ -11,10 +11,9 @@
     (is (= [1 2 3] (infix [1 2 3]))))  ; Single vector
   
   (testing "redundant parentheses"
-    ;; TODO: These edge cases need special handling for deeply nested grouping
-    #_(is (= 7 (infix ((((3 + 4)))))))  ; Multiple nested parens around single expression  
-    #_(is (= true (infix (((true))))))  ; Nested parens around boolean
-    #_(is (= 10 (infix ((5)) + ((5))))))  ; Nested parens around operands
+    (is (= 7 (infix ((((3 + 4)))))))  ; Multiple nested parens around single expression
+    (is (= true (infix (((true))))))  ; Nested parens around boolean
+    (is (= 10 (infix ((5)) + ((5))))))  ; Nested parens around operands
   
   (testing "whitespace and formatting variations"
     ;; Note: Clojure parses tokens based on whitespace, so we test normal spacing
