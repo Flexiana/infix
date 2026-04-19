@@ -48,10 +48,32 @@
                     ;; And it's not a known function that might take operators as arguments
                     (not (known-function? (first lst)))))))))
 
+(defn- grouping-wrap?
+  "Detect a single-element seq whose element is either another sequential
+   form or a plain literal (number, string, boolean, nil) — i.e. redundant
+   parens around an expression or literal. A single-element seq whose
+   element is a symbol or keyword is NOT considered a grouping wrap because
+   that's a legitimate no-arg fn call such as `(foo)` or `(:a)`."
+  [form]
+  (and (seq? form)
+       (= 1 (count form))
+       (let [inner (first form)]
+         (or (sequential? inner)
+             (number? inner)
+             (string? inner)
+             (boolean? inner)
+             (nil? inner)))))
+
 (defn- process-nested-infix
   "Recursively process nested infix expressions."
   [form]
   (cond
+    ;; Redundant grouping: `((expr))` or `(5)` etc. — peel one layer of parens
+    ;; and recurse. This lets users over-parenthesise without producing
+    ;; `((+ 3 4))` at runtime, which would try to call 7 as a function.
+    (grouping-wrap? form)
+    (process-nested-infix (first form))
+
     ;; If it's a list, check if it's infix or function call
     (seq? form)
     (if (is-infix-expression? form)
@@ -60,13 +82,13 @@
           (as-> processed (map process-nested-infix processed))
           parser/parse-infix
           compiler/compile-postfix)
-      ;; Process as function call, recursively processing arguments  
+      ;; Process as function call, recursively processing arguments
       (apply list (map process-nested-infix form)))
-    
+
     ;; If it's a vector, recursively process elements
     (vector? form)
     (vec (map process-nested-infix form))
-    
+
     ;; Otherwise return as-is
     :else
     form))
