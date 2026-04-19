@@ -114,6 +114,17 @@
     ;; Complex precedence with boolean logic
     (is (= true (infix (count [1 2 3]) > (max 1 2) and (min 5 10) < 10)))))  ; 3 > 2 and 5 < 10 = true and true = true
 
+(deftest fn-call-preserves-vector-literals
+  (testing "vector literals survive as arguments to fn(args) syntax"
+    ;; Direct vector argument
+    (is (= 3 (infix count([1 2 3]))))
+    ;; Vector argument followed by infix operator
+    (is (= 4 (infix count([1 2 3]) + 1)))
+    ;; Vector as second argument
+    (is (= '(2 3 4) (infix map(inc, [1 2 3]))))
+    ;; Nested vector
+    (is (= 2 (infix count([[1] [2]]))))))
+
 (deftest function-call-syntax-variations
   (testing "different syntax variations and edge cases"  
     ;; Standard Clojure function syntax works seamlessly

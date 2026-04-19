@@ -73,11 +73,12 @@
   [expr]
   (cond
     (sequential? expr)
-    (let [items (vec expr)]
+    (let [items (vec expr)
+          vec-input? (vector? expr)]
       (loop [i 0
              result []]
         (if (>= i (count items))
-          (seq result)  ; Convert back to list/seq
+          (if vec-input? result (seq result))  ; Preserve original container type
           (let [current (items i)
                 next-item (get items (inc i))]
             (cond
