@@ -139,7 +139,7 @@
 
 (defmacro infix
   "Transform infix expressions into Clojure forms.
-  
+
   Example:
     (infix a + b * c) => (+ a (* b c))
     (infix x => x * x) => (fn [x] (* x x))"
@@ -153,6 +153,15 @@
         (as-> processed (map process-nested-infix processed))
         parser/parse-infix
         compiler/compile-postfix)))
+
+(defmacro _+_
+  "Terse alias for `infix` — operand-operator-operand notation.
+
+  Example:
+    (_+_ a + b * c) => (+ a (* b c))
+    (_+_ x => x * x) => (fn [x] (* x x))"
+  [& expr]
+  `(infix ~@expr))
 
 (defn- process-binding-pairs
   "Process infix-let binding pairs, transforming RHS to infix."
