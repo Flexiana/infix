@@ -8,11 +8,12 @@
 
 - **🧮 Mathematical Expressions**: Write `a * b + c / d` instead of `(+ (* a b) (/ c d))`
 - **🔄 Data Pipelines**: Use `->` and `->>` as infix operators for readable transformations
-- **⚡ Arrow Lambdas**: Clean `x => x * 2` syntax for anonymous functions  
+- **⚡ Arrow Lambdas**: Clean `x => x * 2` syntax for anonymous functions
 - **🔧 Function Definitions**: `infix-defn` for functions with infix bodies
 - **🎯 Early Returns**: Guard clause patterns with `return` statement
 - **📞 Function Calls**: Familiar `fn(args)` syntax within expressions
 - **🏗️ OOP Interop**: Java method chaining with `obj -> .method()` syntax
+- **✏️ Terse alias**: `_+_` mirrors textbook □ ⊕ □ notation for places where `(infix …)` feels heavy
 - **💯 Zero Runtime Overhead**: Everything compiles to standard Clojure forms
 
 Transform readable code like this:
@@ -44,8 +45,11 @@ Add as a git dependency in `deps.edn`:
 
 ```clojure
 ;; deps.edn
+com.flexiana/infix {:mvn/version "1.1.0"}
+
+;; or as a git dep
 io.github.flexiana/infix {:git/url "https://github.com/Flexiana/infix"
-                           :git/tag "v1.0.0"
+                           :git/tag "v1.1.0"
                            :git/sha "SHORT_SHA"}
 ```
 
@@ -64,7 +68,7 @@ Then add to your project:
 com.flexiana/infix {:local/root "/path/to/infix"}
 
 ;; or project.clj after lein install
-[com.flexiana/infix "1.0.0"]
+[com.flexiana/infix "1.1.0"]
 ```
 
 ---
@@ -100,6 +104,27 @@ Grouping with normal parentheses works:
 ```clojure
 (infix (a * (b + c)) / d)
 ```
+
+#### Terse alias: `_+_`
+
+`(infix …)` is fine for the occasional expression but gets noisy when
+math is everywhere. `_+_` is a one-line macro alias that visually
+echoes the textbook **□ ⊕ □** form (operand-operator-operand):
+
+```clojure
+(_+_ a * b + c / d)
+;; => (+ (* a b) (/ c d))
+
+(_+_ x < y and y <= z)
+;; => (and (< x y) (<= y z))
+
+((_+_ x => x * x) 5)
+;; => 25
+```
+
+Everything `infix` supports — arrow lambdas, `fn(args)`, threading,
+nested grouping — works through `_+_` unchanged. Pick whichever reads
+better in context; mixing them in one file is fine.
 
 ---
 
@@ -709,7 +734,7 @@ This example demonstrates:
 
 ---
 
-## 🎯 Current Status: Version 1.0.0
+## 🎯 Current Status: Version 1.1.0
 
 The infix library provides comprehensive infix notation support for Clojure!
 
@@ -722,6 +747,7 @@ The infix library provides comprehensive infix notation support for Clojure!
 - **Early Returns**: Guard clause patterns with `return` statement
 - **Function Call Syntax**: Familiar `fn(args)` notation within expressions
 - **Java Interop**: Method chaining with `obj -> .method()` syntax
+- **Terse Alias**: `_+_` for places where `(infix …)` feels heavy
 - **Zero Overhead**: Everything compiles to standard Clojure forms
 
 **✅ Production Ready**
