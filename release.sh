@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION="1.0.1"
+VERSION="1.1.0"
 echo "Preparing release for infix library v$VERSION"
 
 # Verify all tests pass
