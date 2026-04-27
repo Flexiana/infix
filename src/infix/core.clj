@@ -49,20 +49,23 @@
                     (not (known-function? (first lst)))))))))
 
 (defn- grouping-wrap?
-  "Detect a single-element seq whose element is either another sequential
-   form or a plain literal (number, string, boolean, nil) — i.e. redundant
-   parens around an expression or literal. A single-element seq whose
-   element is a symbol or keyword is NOT considered a grouping wrap because
-   that's a legitimate no-arg fn call such as `(foo)` or `(:a)`."
+  "Detect a single-element seq that wraps a literal, a vector, or an infix
+   expression — i.e. redundant parens. We deliberately do NOT peel forms
+   like `((fn [] 5))` or `((foo))` because those are thunk/no-arg calls in
+   standard Clojure semantics: the outer parens are an invocation, not
+   grouping. Recurses through nested single-element wraps so chains like
+   `(((3 + 4)))` are still recognised."
   [form]
   (and (seq? form)
        (= 1 (count form))
        (let [inner (first form)]
-         (or (sequential? inner)
-             (number? inner)
-             (string? inner)
-             (boolean? inner)
-             (nil? inner)))))
+         (cond
+           (or (number? inner) (string? inner) (boolean? inner)
+               (nil? inner) (keyword? inner)) true
+           (vector? inner) true
+           (and (seq? inner) (is-infix-expression? inner)) true
+           (and (seq? inner) (= 1 (count inner))) (grouping-wrap? inner)
+           :else false))))
 
 (defn- process-nested-infix
   "Recursively process nested infix expressions."
