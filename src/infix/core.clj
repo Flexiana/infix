@@ -48,10 +48,35 @@
                     ;; And it's not a known function that might take operators as arguments
                     (not (known-function? (first lst)))))))))
 
+(defn- grouping-wrap?
+  "Detect a single-element seq that wraps a literal, a vector, or an infix
+   expression — i.e. redundant parens. We deliberately do NOT peel forms
+   like `((fn [] 5))` or `((foo))` because those are thunk/no-arg calls in
+   standard Clojure semantics: the outer parens are an invocation, not
+   grouping. Recurses through nested single-element wraps so chains like
+   `(((3 + 4)))` are still recognised."
+  [form]
+  (and (seq? form)
+       (= 1 (count form))
+       (let [inner (first form)]
+         (cond
+           (or (number? inner) (string? inner) (boolean? inner)
+               (nil? inner) (keyword? inner)) true
+           (vector? inner) true
+           (and (seq? inner) (is-infix-expression? inner)) true
+           (and (seq? inner) (= 1 (count inner))) (grouping-wrap? inner)
+           :else false))))
+
 (defn- process-nested-infix
   "Recursively process nested infix expressions."
   [form]
   (cond
+    ;; Redundant grouping: `((expr))` or `(5)` etc. — peel one layer of parens
+    ;; and recurse. This lets users over-parenthesise without producing
+    ;; `((+ 3 4))` at runtime, which would try to call 7 as a function.
+    (grouping-wrap? form)
+    (process-nested-infix (first form))
+
     ;; If it's a list, check if it's infix or function call
     (seq? form)
     (if (is-infix-expression? form)
@@ -60,13 +85,13 @@
           (as-> processed (map process-nested-infix processed))
           parser/parse-infix
           compiler/compile-postfix)
-      ;; Process as function call, recursively processing arguments  
+      ;; Process as function call, recursively processing arguments
       (apply list (map process-nested-infix form)))
-    
+
     ;; If it's a vector, recursively process elements
     (vector? form)
     (vec (map process-nested-infix form))
-    
+
     ;; Otherwise return as-is
     :else
     form))
