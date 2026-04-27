@@ -93,15 +93,23 @@
   (let [param-vector (cond
                        ;; Single parameter: x -> expr
                        (symbol? params) [params]
-                       
-                       ;; Parameter list: (x, y) -> expr  
+
+                       ;; Parameter list: (x, y) -> expr
                        (sequential? params)
                        (vec params))
-                       
-        processed-body (-> body-tokens
-                           (as-> processed (map process-nested-infix processed))
-                           parser/parse-infix
-                           compiler/compile-postfix)]
+
+        processed-body (if (= 1 (count body-tokens))
+                         ;; A body that is a single form is already a complete
+                         ;; Clojure expression (e.g. `(max x 5)` or a nested
+                         ;; `(infix y => x + y)`). Don't run it through the
+                         ;; infix parser, which would treat the macro name and
+                         ;; `=>` as operands and emit a broken vector stack.
+                         (process-nested-infix (first body-tokens))
+                         ;; Multi-token body — parse as an infix expression.
+                         (-> body-tokens
+                             (as-> processed (map process-nested-infix processed))
+                             parser/parse-infix
+                             compiler/compile-postfix))]
     `(~'fn ~param-vector ~processed-body)))
 
 (defmacro infix
@@ -213,7 +221,7 @@
     (let [wrapped-body `(try ~processed-body
                              (catch Exception e#
                                (if (and (= "return" (.getMessage e#))
-                                        (:return-value (ex-data e#)))
+                                        (contains? (ex-data e#) :return-value))
                                  (:return-value (ex-data e#))
                                  (throw e#))))]
       (if docstring
