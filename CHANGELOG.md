@@ -5,6 +5,18 @@ All notable changes to the infix library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-04-27
+
+### Fixed
+- **Early return**: `(return nil)` and `(return false)` no longer re-throw — `infix-defn` now distinguishes "no return value" from "returned a falsy value" by checking key presence in `ex-data`. (#1)
+- **Vector literals as fn(args) arguments**: `count([1 2 3])` and similar now preserve the vector container instead of coercing it to a seq, so `(map inc, [1 2 3])` and friends work as expected. (#3)
+- **Nested fn(args) inside let-binding RHS**: `(let [n count(xs)] …)` and operator-headed nesting like `(let [t (/ count(xs) 2)] …)` are now transformed correctly inside `infix-defn`. The `transform-function-calls` pass is now context-aware (`:expression` vs `:call`) and protects let-style binding vectors. (#3)
+- **Single-form arrow-lambda bodies**: `(infix x => (max x 5))` and curried `(infix x => (infix y => x + y))` no longer go through the infix parser, which had been mangling pre-formed Clojure expressions. (#5)
+- **Redundant parentheses**: `(infix ((((3 + 4)))))` etc. now evaluate correctly. The grouping detector deliberately leaves the thunk-call idiom `((fn [] 5))` intact — only literals, vectors, infix expressions, and chains that bottom out in those are unwrapped. (#8)
+
+### Added
+- **CI**: GitHub Actions test workflow with hardened defaults — explicit `permissions: contents: read` and SHA-pinned actions (including the third-party `DeLaGuardo/setup-clojure`) so a moving tag cannot inject new code into the build. (#9)
+
 ## [1.0-rc1] - 2025-04-01
 
 ### Added

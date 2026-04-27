@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.flexiana</groupId>
   <artifactId>infix</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <name>infix</name>
   <description>Readable Math and Dataflow Syntax for Clojure with infix expressions, OOP interop, and threading macros</description>
   <url>https://github.com/Flexiana/infix</url>

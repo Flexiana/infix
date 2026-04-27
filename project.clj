@@ -1,4 +1,4 @@
-(defproject com.flexiana/infix "1.0.0"
+(defproject com.flexiana/infix "1.0.1"
   :description "Readable Math and Dataflow Syntax for Clojure with infix expressions, OOP interop, and threading macros"
   :url "https://github.com/flexiana/infix"
   :license {:name "Apache License 2.0"
