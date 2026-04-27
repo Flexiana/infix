@@ -5,6 +5,18 @@ All notable changes to the infix library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-27
+
+### Added
+- **`_+_` macro**: terse alias for `infix`. Mirrors the textbook operand-operator-operand notation (□ ⊕ □) while staying ASCII and home-row. All `infix` features (arrow lambdas, fn(args), grouping) work through it. (#11)
+
+  ```clojure
+  (_+_ 3 + 4)               ;; => 7
+  (_+_ 2 * 3 + 4 * 2)       ;; => 14
+  ((_+_ x => x * x) 5)      ;; => 25
+  (_+_ count([1 2 3]) + 1)  ;; => 4
+  ```
+
 ## [1.0.1] - 2026-04-27
 
 ### Fixed
