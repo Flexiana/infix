@@ -16,6 +16,12 @@
   "Set of Clojure special forms to avoid in lambda parameters."
   #{'fn 'defn 'let 'if 'when 'cond})
 
+(def ^:private binding-forms
+  "Clojure forms whose first argument is a let-style binding vector
+   alternating [name value name value ...]. Recognised so that fn(args)
+   transformation does not confuse a binding name with a function head."
+  #{'let 'loop 'when-let 'if-let 'when-some 'if-some 'binding 'with-open})
+
 (defn- function-call-pattern?
   "Check if a symbol could be followed by function call syntax."
   [sym]
@@ -68,56 +74,131 @@
          (re-matches #"^[A-Z][a-zA-Z0-9_]*$" s))))
 
 
-(defn transform-function-calls
-  "Transform function call syntax by detecting symbol followed by list pattern."
-  [expr]
-  (cond
-    (sequential? expr)
-    (let [items (vec expr)]
-      (loop [i 0
-             result []]
-        (if (>= i (count items))
-          (seq result)  ; Convert back to list/seq
-          (let [current (items i)
-                next-item (get items (inc i))]
-            (cond
-              ;; Check for object creation pattern: ClassName.new(args)
-              (and (object-creation-pattern? current)
-                   (seq? next-item))
-              (let [[class-name _] (split-object-creation current)
-                    transformed-args (map transform-function-calls next-item)
-                    constructor-call (cons 'new (cons class-name transformed-args))]
-                (recur (+ i 2) (conj result constructor-call)))
-              
-              ;; Check for constructor call pattern: ClassName(args)
-              (and (constructor-call-pattern? current)
-                   (seq? next-item))
-              (let [transformed-args (map transform-function-calls next-item)
-                    constructor-call (cons 'new (cons current transformed-args))]
-                (recur (+ i 2) (conj result constructor-call)))
-              
-              ;; Check for OOP method call pattern: obj.method(args)
-              (and (oop-method-call-pattern? current)
-                   (seq? next-item))
-              (let [[obj method] (split-oop-method-call current)
-                    transformed-args (map transform-function-calls next-item)
-                    method-call (cons (symbol (str "." method)) (cons obj transformed-args))]
-                (recur (+ i 2) (conj result method-call)))
-              
-              ;; Check for regular function call pattern: fn(args)
-              (and (function-call-pattern? current)
-                   (seq? next-item))
-              (let [transformed-args (map transform-function-calls next-item)
-                    fn-call (cons current transformed-args)]
-                (recur (+ i 2) (conj result fn-call)))
-              
-              ;; Not a function call pattern — don't recurse into sub-expressions
-              ;; as they are standard Clojure forms, not infix function-call syntax
-              :else
-              (recur (inc i) (conj result current)))))))
+(declare transform-function-calls)
 
-    :else
-    expr))
+(defn- transform-binding-vector
+  "Transform a let-style binding vector. Even indices are binding targets
+   (kept as-is or recursed for destructuring); odd indices are RHS
+   expressions processed as flat infix fragments. If the vector has an
+   odd count, Clojure reader probably split an fn(args) pair, so treat
+   the whole vector as a flat expression to glue it back together."
+  [bvec]
+  (let [items (vec bvec)]
+    (if (odd? (count items))
+      (transform-function-calls bvec :expression)
+      ;; Even count — binding names and RHSs are already aligned. Each
+      ;; sequential item (destructuring LHS or expression RHS) is a Clojure
+      ;; form, so recurse as :call. Non-sequential items stay as-is.
+      (mapv (fn [item]
+              (if (sequential? item)
+                (transform-function-calls item :call)
+                item))
+            items))))
+
+(defn transform-function-calls
+  "Transform function call syntax by detecting symbol followed by list pattern.
+
+   `context` tells us how to interpret the first element of `expr`:
+     :expression — a flat infix/arg-list sequence; every position is eligible
+                   for fn(args) pattern matching.
+     :call       — the first element is the fn/macro/special-form head of a
+                   Clojure call form; skip pattern matching at position 0 so
+                   `cond` in `(cond (x = y) 1)` isn't treated as fn(args).
+                   Additionally, non-head positions are treated as independent
+                   arguments: adjacent `symbol` + `(list)` pairs are NOT
+                   merged into fn-calls there (that would mis-read e.g.
+                   `(.addAll list (seq items))` as `(.addAll (list seq items))`)."
+  ([expr] (transform-function-calls expr :expression))
+  ([expr context]
+   (cond
+     (sequential? expr)
+     (let [items (vec expr)
+           vec-input? (vector? expr)
+           head (first items)
+           binding-call? (and (= context :call)
+                              (symbol? head)
+                              (contains? binding-forms head)
+                              (vector? (second items)))
+           ;; When the head is an operator (e.g. `(/ count (numbers))`), the
+           ;; body is a flat operand list — treat it as :expression so nested
+           ;; fn(args) pairs get glued together.
+           operator-headed-call? (and (= context :call)
+                                      (symbol? head)
+                                      (contains? operators head))
+           ;; Are we currently in a position where fn-call patterns may match?
+           match-patterns? (or (= context :expression) operator-headed-call?)]
+       (cond
+         ;; (let [binding-vec] body...) and friends: protect binding-vec layout.
+         binding-call?
+         (let [transformed-bvec (transform-binding-vector (second items))
+               body (drop 2 items)
+               transformed-body (map #(if (sequential? %)
+                                        (transform-function-calls % :call)
+                                        %)
+                                     body)]
+           (apply list head transformed-bvec transformed-body))
+
+         :else
+         (loop [i 0
+                result []]
+           (if (>= i (count items))
+             (if vec-input? result (seq result))  ; Preserve original container type
+             (let [current (items i)
+                   next-item (get items (inc i))
+                   head-pos? (and (= context :call) (zero? i))]
+               (cond
+                 ;; Head of a call form: preserve the head, recurse into it as :call.
+                 head-pos?
+                 (recur (inc i)
+                        (conj result
+                              (if (sequential? current)
+                                (transform-function-calls current :call)
+                                current)))
+
+                 ;; In a context where pattern matching is allowed, try each
+                 ;; fn(args) pattern. Otherwise skip directly to :else (keep
+                 ;; tokens as independent arguments).
+                 (and match-patterns?
+                      (object-creation-pattern? current)
+                      (seq? next-item))
+                 (let [[class-name _] (split-object-creation current)
+                       transformed-args (transform-function-calls next-item :expression)
+                       constructor-call (cons 'new (cons class-name transformed-args))]
+                   (recur (+ i 2) (conj result constructor-call)))
+
+                 (and match-patterns?
+                      (constructor-call-pattern? current)
+                      (seq? next-item))
+                 (let [transformed-args (transform-function-calls next-item :expression)
+                       constructor-call (cons 'new (cons current transformed-args))]
+                   (recur (+ i 2) (conj result constructor-call)))
+
+                 (and match-patterns?
+                      (oop-method-call-pattern? current)
+                      (seq? next-item))
+                 (let [[obj method] (split-oop-method-call current)
+                       transformed-args (transform-function-calls next-item :expression)
+                       method-call (cons (symbol (str "." method)) (cons obj transformed-args))]
+                   (recur (+ i 2) (conj result method-call)))
+
+                 (and match-patterns?
+                      (function-call-pattern? current)
+                      (seq? next-item))
+                 (let [transformed-args (transform-function-calls next-item :expression)
+                       fn-call (cons current transformed-args)]
+                   (recur (+ i 2) (conj result fn-call)))
+
+                 ;; Plain token: keep as-is, recursing into sub-sequences as
+                 ;; :call so nested fn(args) is still detected where safe.
+                 :else
+                 (recur (inc i)
+                        (conj result
+                              (if (sequential? current)
+                                (transform-function-calls current :call)
+                                current)))))))))
+
+     :else
+     expr)))
 
 (defn tokenize
   "Convert infix expression into sequence of tokens."
