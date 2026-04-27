@@ -213,7 +213,7 @@
     (let [wrapped-body `(try ~processed-body
                              (catch Exception e#
                                (if (and (= "return" (.getMessage e#))
-                                        (:return-value (ex-data e#)))
+                                        (contains? (ex-data e#) :return-value))
                                  (:return-value (ex-data e#))
                                  (throw e#))))]
       (if docstring
