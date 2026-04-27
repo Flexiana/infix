@@ -11,10 +11,17 @@
     (is (= [1 2 3] (infix [1 2 3]))))  ; Single vector
   
   (testing "redundant parentheses"
-    ;; TODO: These edge cases need special handling for deeply nested grouping
-    #_(is (= 7 (infix ((((3 + 4)))))))  ; Multiple nested parens around single expression  
-    #_(is (= true (infix (((true))))))  ; Nested parens around boolean
-    #_(is (= 10 (infix ((5)) + ((5))))))  ; Nested parens around operands
+    (is (= 7 (infix ((((3 + 4)))))))  ; Multiple nested parens around single expression
+    (is (= true (infix (((true))))))  ; Nested parens around boolean
+    (is (= 10 (infix ((5)) + ((5))))))  ; Nested parens around operands
+
+  (testing "thunk-call idiom is preserved (not peeled as grouping)"
+    ;; `((fn [] 5))` is a no-arg fn invocation in Clojure — the outer parens
+    ;; are a call, not redundant grouping. Must not be unwrapped.
+    (is (= 5 (infix ((fn [] 5)))))
+    (is (= 7 (infix ((constantly 7)))))
+    ;; And the result of such a call still composes with infix operators.
+    (is (= 10 (infix ((fn [] 5)) + ((fn [] 5))))))
   
   (testing "whitespace and formatting variations"
     ;; Note: Clojure parses tokens based on whitespace, so we test normal spacing

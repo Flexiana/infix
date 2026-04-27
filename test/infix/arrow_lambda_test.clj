@@ -89,6 +89,23 @@
     ;; Complex precedence
     (is (= [4 6 8] (map (infix x => x * 2 + 1 - 1) [2 3 4])))))  ; (x * 2) + 1 - 1 = x * 2
 
+(deftest nested-infix-in-lambda-body
+  (testing "an (infix ...) form inside an arrow-lambda body is left intact"
+    ;; Currying via nested arrow lambdas
+    (let [add (infix x => (infix y => x + y))]
+      (is (= 7 ((add 3) 4)))
+      (is (= 10 ((add 6) 4))))
+
+    ;; Nested infix producing non-lambda value
+    (let [scaled (infix m => (infix 2 * m))]
+      (is (= 6 (scaled 3)))
+      (is (= 20 (scaled 10)))))
+
+  (testing "single-form bodies that are normal Clojure calls still work"
+    ;; Regression guard for the previous behaviour
+    (is (= [5 8 10] (map (infix x => (max x 5)) [3 8 10])))
+    (is (= "hi" ((infix x => (str "h" "i")) :ignored)))))
+
 (deftest arrow-lambda-edge-cases
   (testing "edge cases and error scenarios"
     ;; Identity function
